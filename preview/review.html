@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Adversarial Review — Car Service History</title>
+<style>
+  :root{
+    --bg:#eef1f5;--card:#fff;--ink:#161a20;--muted:#68707d;--line:#e4e8ee;
+    --accent:#2f6df6;--shadow:0 10px 30px rgba(20,30,50,.08);
+    --red:#dc2626;--amber:#d97706;--yellow:#b8860b;--green:#16a34a;--radius:18px;
+  }
+  html[data-theme="dark"]{--bg:#0e1116;--card:#171c23;--ink:#e9edf3;--muted:#93a0b1;--line:#242b34;--accent:#5b8cff;--shadow:0 12px 34px rgba(0,0,0,.45)}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;line-height:1.55}
+  .wrap{max-width:860px;margin:0 auto;padding:24px 18px 90px}
+  header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#8ab0ff);display:grid;place-items:center;color:#fff;font-size:20px;box-shadow:var(--shadow)}
+  h1{font-size:21px;margin:0;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  a.back{color:var(--accent);text-decoration:none;font-size:13px}
+  .toggle{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 13px;font-size:13px;cursor:pointer;box-shadow:var(--shadow)}
+  .lead{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);margin-bottom:20px}
+  .lead p{margin:.4em 0;font-size:14.5px}
+  .counts{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+  .pill{font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:999px}
+  .pill.r{background:color-mix(in srgb,var(--red) 15%,transparent);color:var(--red)}
+  .pill.a{background:color-mix(in srgb,var(--amber) 18%,transparent);color:var(--amber)}
+  .pill.y{background:color-mix(in srgb,var(--yellow) 20%,transparent);color:var(--yellow)}
+  h2{font-size:16px;margin:26px 0 12px;display:flex;align-items:center;gap:8px}
+  details.f{background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:14px;box-shadow:var(--shadow);margin-bottom:11px;overflow:hidden}
+  details.r{border-left-color:var(--red)} details.a{border-left-color:var(--amber)}
+  summary{cursor:pointer;padding:14px 16px;font-weight:600;font-size:14.5px;list-style:none;display:flex;gap:10px;align-items:flex-start}
+  summary::-webkit-details-marker{display:none}
+  summary .num{flex:0 0 auto;font-size:11.5px;font-weight:800;color:var(--muted);margin-top:2px}
+  summary .conv{margin-left:auto;flex:0 0 auto;font-size:11px;color:var(--muted);font-weight:600;white-space:nowrap}
+  .fbody{padding:0 16px 15px 16px;font-size:14px;color:var(--ink)}
+  .fbody .row{margin:9px 0}
+  .fbody .k{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:2px}
+  .fbody .fix{background:color-mix(in srgb,var(--green) 9%,transparent);border-radius:10px;padding:9px 11px}
+  .fbody .fix .k{color:var(--green)}
+  ul.minor{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 20px 14px 34px;margin:0}
+  ul.minor li{margin:6px 0;font-size:13.5px}
+  .box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;margin-bottom:14px}
+  .box.apply{border-left:4px solid var(--green)}
+  .box.decide{border-left:4px solid var(--accent)}
+  .box h3{margin:0 0 6px;font-size:15.5px}
+  .box ul{margin:8px 0 0;padding-left:20px}
+  .box li{margin:5px 0;font-size:13.8px}
+  .dec{margin:12px 0;padding:12px 14px;border:1px dashed var(--line);border-radius:12px}
+  .dec .q{font-weight:700;font-size:14px}
+  .dec .rec{color:var(--green);font-weight:700}
+  footer{margin-top:34px;color:var(--muted);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="logo">🛡️</div>
+      <div><h1>Adversarial Design Review</h1><div class="sub"><a class="back" href="../index.html">‹ Project hub</a> · six Opus engineers vs. the spec</div></div>
+    </div>
+    <button class="toggle" id="themeBtn">🌙 Dark</button>
+  </header>
+
+  <div class="lead">
+    <p><strong>The exercise:</strong> before writing a line of code, six independent Opus engineers were each told to <em>break</em> the design from a different angle — prediction logic, data model, offline/installability, security, accessibility, and future growth. They didn't praise it. They attacked it.</p>
+    <p><strong>The result:</strong> real problems found, several flagged by more than one reviewer independently — which is the strongest signal they're real. Every one has a concrete fix below. Almost all are cheap to fix <em>now</em> and expensive to fix after building.</p>
+    <div class="counts">
+      <span class="pill r">8 Blockers</span>
+      <span class="pill a">10 Majors</span>
+      <span class="pill y">13 Minors</span>
+    </div>
+  </div>
+
+  <h2>🔴 Blockers — must fix before building</h2>
+
+  <details class="f r"><summary><span class="num">B1</span><span>A single odometer typo (52000 → 520000) makes the whole app scream "everything overdue" — forever</span><span class="conv">4 reviewers</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>"Current mileage" is the highest odometer you've ever entered. One fat-fingered high number becomes your permanent current mileage, so every prediction turns red. The typo guard only warned about numbers that were too <em>low</em>, so a too-high one sails through — and future correct entries can't undo it.</div>
+      <div class="row fix"><span class="k">Fix</span>Warn on implausible jumps in <em>both</em> directions; make current-mileage outlier-aware and recomputed from scratch; show the current mileage on screen and let you exclude a bad reading. Also: define "last time X was done" as the highest-odometer entry with that job (not entry order), so back-filled old receipts don't corrupt predictions.</div>
+    </div>
+  </details>
+
+  <details class="f r"><summary><span class="num">B2</span><span>Restoring a backup wipes your real history <em>before</em> checking the file is valid</span><span class="conv">2 reviewers</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>Import the wrong file (or a truncated/foreign one), tap Confirm, and your genuine history is gone with nothing usable in its place. The confirm dialog guards against an accidental tap — not against a bad file.</div>
+      <div class="row fix"><span class="k">Fix</span>Never touch your live data until the incoming file is fully checked: read → validate shape → upgrade a <em>copy</em> → validate again → then replace. Reject files that aren't ours or are from a newer app version. Auto-save a snapshot of your current data right before any restore, with an Undo.</div>
+    </div>
+  </details>
+
+  <details class="f r"><summary><span class="num">B3</span><span>A malicious/booby-trapped backup file could run code or corrupt the app</span><span class="conv">2 reviewers</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>Text you type (workshop, notes) rendered the wrong way, or a hand-crafted import file, could inject scripts, poison the app's internals, or crash it on every load.</div>
+      <div class="row fix"><span class="k">Fix</span>Render all user text as plain text only (never as HTML); strip dangerous keys from imported files; rebuild imported data field-by-field against a strict allow-list; add a strict security policy (CSP) in the page that also mechanically enforces "nothing ever leaves your device."</div>
+    </div>
+  </details>
+
+  <details class="f r"><summary><span class="num">B4</span><span>After every update you publish, users stay stuck on the OLD version — sometimes forever</span><span class="conv">2 reviewers</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>An installed offline app aggressively caches itself. Without an explicit update path, a new version installs but never activates — bug fixes never reach the user.</div>
+      <div class="row fix"><span class="k">Fix</span>Stamp each build with a unique version so the browser notices the change; take control immediately and reload once, or show a gentle "Update available" tap; clear out old caches on activation.</div>
+    </div>
+  </details>
+
+  <details class="f r"><summary><span class="num">B5</span><span>On GitHub Pages the app installs blank / with missing icons / broken offline</span><span class="conv">1 reviewer</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>The app lives at <code>…github.io/car-service/</code>, not the site root. Any path written from the root (icons, manifest, offline files) points to the wrong place — the classic way this exact recipe fails on GitHub Pages.</div>
+      <div class="row fix"><span class="k">Fix</span>Use relative paths everywhere (manifest, service worker, icons); register the offline worker relative to the page; add the Apple-specific tags iPhones need for a clean home-screen install. Test under the real sub-path, not just the root.</div>
+    </div>
+  </details>
+
+  <details class="f r"><summary><span class="num">B6</span><span>On iPhone, the app can quietly erase itself after ~7 days — and backup is buried</span><span class="conv">2 reviewers</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>iOS auto-clears a website's storage after ~7 days of no use <em>unless it's installed to the home screen</em>. You'd realistically open this app around workshop visits — months apart. Come back to an empty app, and the backup button was hidden in Settings you never opened.</div>
+      <div class="row fix"><span class="k">Fix</span>Ask the browser to keep storage persistent; put backup on the <em>home screen</em> with "Last backed up: N days ago" and a gentle nudge; first-run note explaining the data lives only on this device; clear "Add to Home Screen" guidance on iPhone.</div>
+    </div>
+  </details>
+
+  <details class="f r"><summary><span class="num">B7</span><span>The most important signal — due / overdue — is invisible to colour-blind and screen-reader users</span><span class="conv">1 reviewer</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>Status shown by red/amber/green only. ~8% of men can't tell them apart; a screen reader announces nothing. In sunlight it's hard for anyone.</div>
+      <div class="row fix"><span class="k">Fix</span>Every status carries an icon <em>and</em> words ("Overdue by 2,000 km", "Due soon", "OK", "Not logged yet") plus a screen-reader label. Bake accessibility into the design from step one, not "final polish."</div>
+    </div>
+  </details>
+
+  <details class="f r"><summary><span class="num">B8</span><span>First-run maths shows nonsense (∞ / NaN) and pop-up sheets trap keyboard users</span><span class="conv">2 reviewers</span></summary>
+    <div class="fbody">
+      <div class="row"><span class="k">What breaks</span>"Average per year" divides by a near-zero time span on day one → absurd or broken numbers as the first impression. And the slide-in forms don't move keyboard focus, so keyboard/screen-reader users get stuck behind them.</div>
+      <div class="row fix"><span class="k">Fix</span>Floor the "per year" maths and show "—" until there's enough history; guard every calculation against empty/zero. Give sheets proper focus handling (move focus in, trap it, Esc to close, return focus out).</div>
+    </div>
+  </details>
+
+  <h2>🟠 Majors — should fix</h2>
+
+  <details class="f a"><summary><span class="num">M1</span><span>Backfilling old receipts triggers a false "odometer too low" warning every time</span></summary><div class="fbody"><div class="row fix"><span class="k">Fix</span>Make the check date-aware: only warn when mileage disagrees with the entry's <em>date</em> neighbours, so correctly-entered old receipts stay quiet.</div></div></details>
+
+  <details class="f a"><summary><span class="num">M2</span><span>On a used car, predictions look empty ("not yet recorded") for everything already serviced</span></summary><div class="fbody"><div class="row"><span class="k">Why it matters</span>Your target user adopts the app for a car that's already years old across mixed workshops. Every job reads "not logged" — even "never done" to a buyer.</div><div class="row fix"><span class="k">Fix (a decision below)</span>Let the user optionally seed "last done at ~X km (before I started logging)" so predictions work from day one.</div></div></details>
+
+  <details class="f a"><summary><span class="num">M3</span><span>Distance-only predictions call brake fluid "OK" for years on a low-mileage car</span></summary><div class="fbody"><div class="row"><span class="k">Why it matters</span>Brake fluid/cabin filter are really time-based. A 5,000 km/year driver would be told they're fine when they're overdue by years — on safety items.</div><div class="row fix"><span class="k">Fix (a decision below)</span>At minimum add a soft "also due by time — check your manual" caption so a green light isn't read as all-clear.</div></div></details>
+
+  <details class="f a"><summary><span class="num">M4</span><span>No Undo on delete; error messages vanish in 3 seconds</span></summary><div class="fbody"><div class="row fix"><span class="k">Fix</span>Delete with a 6-second "Undo" toast instead of relying on a confirm; make storage-failure errors stay until dismissed so you never think something saved when it didn't.</div></div></details>
+
+  <details class="f a"><summary><span class="num">M5</span><span>"Due soon" fires 10,000 km early for spark plugs (10% of a big interval is huge)</span></summary><div class="fbody"><div class="row fix"><span class="k">Fix</span>Cap the "due soon" lead to a sensible absolute distance (~1,000 km) instead of a flat 10%.</div></div></details>
+
+  <details class="f a"><summary><span class="num">M6</span><span>The data shape makes the top future features (multi-car, photos, sync) a costly rebuild</span><span class="conv">2 reviewers</span></summary><div class="fbody"><div class="row"><span class="k">Why it matters</span>Entries/intervals sit beside the car instead of inside it (multi-car = migration + rewrites); photos would blow the small storage limit; sync needs per-record IDs and timestamps that don't exist yet.</div><div class="row fix"><span class="k">Fix (a decision below)</span>A few near-free changes now — proper unique IDs + timestamps, intervals as small objects, nesting data under the car — turn future rebuilds into simple additions.</div></div></details>
+
+  <h2>🟡 Minors — polish &amp; robustness</h2>
+  <ul class="minor">
+    <li>Honour "reduce motion" (some people get motion-sick from slide animations).</li>
+    <li>Minimum 44px tap targets on chips and buttons.</li>
+    <li>Colour tokens that pass contrast in both light and dark.</li>
+    <li>Handle "1,250" style number typing (thousands separators).</li>
+    <li>Warn (don't block) on a future-dated service; default the date to today.</li>
+    <li>Stop double-tap creating duplicate entries.</li>
+    <li>Allow an entry with unknown mileage (old receipts), excluded from predictions.</li>
+    <li>Tap a card to read full notes without entering edit mode.</li>
+    <li>Define what search covers (workshop + notes + job) and show a "no results" state.</li>
+    <li>Year/date jump for very long histories.</li>
+    <li>Keep the saved theme in sync after a restore (no colour flash).</li>
+    <li>Robust, step-by-step data upgrades (each tested, never half-applied).</li>
+    <li>Tidy job tags (trim/lowercase) and protect the built-in job names.</li>
+  </ul>
+
+  <h2>✅ What I'll fix automatically (no need to decide)</h2>
+  <div class="box apply">
+    <h3>All correctness, security, offline, and accessibility fixes above</h3>
+    <p style="font-size:13.8px;color:var(--muted);margin:.3em 0 0">These are quality-of-engineering fixes, not new features — so I'll simply bake them into the spec: the odometer guard, robust predictions, safe restore, plain-text rendering + security policy, the update mechanism, GitHub-Pages relative paths + iPhone install, persistent storage + prominent backup, accessible status + focus handling, guarded maths, undo-delete, sticky error messages, and every minor above.</p>
+  </div>
+
+  <h2>🤔 3 decisions I need from you</h2>
+  <div class="box decide">
+    <div class="dec"><div class="q">1. How much future-proofing to bake in now?</div><p style="font-size:13.8px;margin:.4em 0 0">A handful of changes make future features (multiple cars, photos, cloud sync) cheap later — but add a little complexity today for things you don't need yet. <span class="rec">Recommended: Balanced</span> — do the near-free ones (unique IDs, timestamps, nest data under the car), skip the speculative ones.</p></div>
+    <div class="dec"><div class="q">2. Add an optional "last serviced before I started logging" anchor?</div><p style="font-size:13.8px;margin:.4em 0 0">Fixes the "everything looks never-done" problem on a used car. <span class="rec">Recommended: Yes</span> — it's core to being useful on a real, older car from day one.</p></div>
+    <div class="dec"><div class="q">3. What to do about time-based items (brake fluid, etc.) in v1?</div><p style="font-size:13.8px;margin:.4em 0 0">We locked "distance-only" earlier, but it can wrongly say "OK" on safety items for low-mileage drivers. <span class="rec">Recommended: keep distance-only + a soft "also due by time" caption</span>; full time rules come next.</p></div>
+  </div>
+
+  <footer>Generated from six independent Opus reviews · Car Service History · 2026-07-10</footer>
+</div>
+<script>
+  const html=document.documentElement,btn=document.getElementById('themeBtn');
+  function apply(t){html.setAttribute('data-theme',t);btn.textContent=t==='dark'?'☀️ Light':'🌙 Dark';try{localStorage.setItem('csh-hub-theme',t)}catch(e){}}
+  try{apply(localStorage.getItem('csh-hub-theme')||'light')}catch(e){apply('light')}
+  btn.onclick=()=>apply(html.getAttribute('data-theme')==='dark'?'light':'dark');
+</script>
+</body>
+</html>
