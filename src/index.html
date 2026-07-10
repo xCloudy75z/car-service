@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; connect-src 'none'; font-src 'self' https://fonts.gstatic.com; manifest-src 'self'; worker-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'" />
+  <title>Car Service History</title>
+
+  <meta name="theme-color" content="#b45816" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Service History" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="manifest" href="manifest.webmanifest" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles/cognac.css" />
+</head>
+<body>
+  <div id="app-root">
+    <main id="app" aria-live="off"></main>
+
+    <button class="fab" id="fab" type="button" aria-label="Add service">+</button>
+
+    <nav class="tabbar" aria-label="Main sections">
+      <button class="tab active" type="button" data-tab="history" aria-selected="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>History</button>
+      <button class="tab" type="button" data-tab="due" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Maintenance</button>
+      <button class="tab" type="button" data-tab="insights" aria-selected="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V11M10 19V5M16 19v-6M22 19H2"/></svg>Insights</button>
+    </nav>
+  </div>
+
+  <!-- Live regions live OUTSIDE #app-root so they stay announced/interactive while a modal sheet makes the background inert. -->
+  <div id="toast-polite" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+  <div id="toast-assertive" class="toast-host" role="alert" aria-live="assertive" aria-atomic="true"></div>
+
+  <div id="sheet-layer"></div>
+
+  <script type="module" src="app.js"></script>
+  <script type="module" src="register-sw.js"></script>
+</body>
+</html>
