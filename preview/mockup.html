@@ -1,101 +1,112 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en" data-look="cognac">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Car Service History — Interactive Mockup</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
-<script>(function(){try{var t=localStorage.getItem('csh-hub-theme');if(!t)t='light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script>(function(){try{var l=localStorage.getItem('csh-look')||'cognac';document.documentElement.setAttribute('data-look',l);}catch(e){document.documentElement.setAttribute('data-look','cognac');}})();</script>
 <style>
   :root{
-    --bg:#e9edf4; --card:#ffffff; --card2:#f6f8fc; --ink:#111620; --muted:#6a7482; --faint:#9aa4b2;
-    --line:#e4e9f1; --accent:#2551f5; --accent-soft:#e7edff; --accent-ink:#fff;
-    --green:#12a150; --green-soft:#e3f6ec; --amber:#e08600; --amber-soft:#fdf0d9; --red:#e5484d; --red-soft:#fdeaea; --grey:#9aa4b2; --grey-soft:#eef1f5;
-    --shadow:0 20px 50px rgba(20,30,55,.16); --shadow-sm:0 2px 8px rgba(20,30,55,.06);
-    --fd:"Space Grotesk",system-ui,sans-serif; --fb:"Inter",system-ui,sans-serif; --fm:"JetBrains Mono",ui-monospace,monospace;
+    --fd:"Bricolage Grotesque",system-ui,sans-serif; --fb:"Inter",system-ui,-apple-system,sans-serif; --fm:"JetBrains Mono",ui-monospace,monospace;
+    --shadow:0 22px 54px rgba(25,22,16,.16); --shadow-sm:0 2px 10px rgba(25,22,16,.07);
+    --bg:#f4efe7; --card:#fffdf9; --card2:#f2ece1; --ink:#1d1711; --muted:#7c7061; --faint:#aa9d8b; --line:#e8dfd0;
+    --accent:#b45816; --accent2:#e2913f; --accent-soft:#f8ecd9; --accent-ink:#fff;
+    --green:#3f8f5b; --green-soft:#e6f1e8; --amber:#c17d16; --amber-soft:#f7ecd2; --red:#bb3b2e; --red-soft:#f7e4e1; --grey:#a99d8b; --grey-soft:#efe9df;
     color-scheme:light;
   }
-  :root[data-theme="dark"]{
-    --bg:#0b0e13; --card:#141922; --card2:#1a212c; --ink:#eef2f8; --muted:#8b95a3; --faint:#5c6675;
-    --line:#232c39; --accent:#5b82ff; --accent-soft:#17233f; --accent-ink:#fff;
+  :root[data-look="cognac"]{--glow:#e6bd84;
+    --bg:#f4efe7; --card:#fffdf9; --card2:#f2ece1; --ink:#1d1711; --muted:#7c7061; --faint:#aa9d8b; --line:#e8dfd0;
+    --accent:#b45816; --accent2:#e2913f; --accent-soft:#f8ecd9; --accent-ink:#fff;
+    --green:#3f8f5b; --green-soft:#e6f1e8; --amber:#c17d16; --amber-soft:#f7ecd2; --red:#bb3b2e; --red-soft:#f7e4e1; --grey:#a99d8b; --grey-soft:#efe9df; color-scheme:light;}
+  :root[data-look="petrol"]{--glow:#9fd8d0;
+    --bg:#e8eff0; --card:#ffffff; --card2:#eef5f5; --ink:#0f1e1d; --muted:#5e7573; --faint:#93aaa8; --line:#dbe7e6;
+    --accent:#0d8f84; --accent2:#39c6b6; --accent-soft:#d6efec; --accent-ink:#fff;
+    --green:#0f9d6b; --green-soft:#d9f2e7; --amber:#bd8410; --amber-soft:#f6ecd2; --red:#d64545; --red-soft:#fbe4e4; --grey:#93aaa8; --grey-soft:#e6eeed; color-scheme:light;}
+  :root[data-look="racing"]{--glow:#efb0b4;
+    --bg:#f1efeb; --card:#ffffff; --card2:#f4f1ec; --ink:#181410; --muted:#726a60; --faint:#a79e91; --line:#e6e1d8;
+    --accent:#c1121f; --accent2:#e63946; --accent-soft:#fbe3e4; --accent-ink:#fff;
+    --green:#2f8f57; --green-soft:#e3f1e8; --amber:#b9760f; --amber-soft:#f6ecd2; --red:#c1121f; --red-soft:#fbe3e4; --grey:#a79e91; --grey-soft:#eeeae3; color-scheme:light;}
+  :root[data-look="midnight"]{--glow:#f5b74e;
+    --bg:#0d1014; --card:#161b22; --card2:#1d242d; --ink:#eef2f7; --muted:#93a0af; --faint:#616d7c; --line:#252e3a;
+    --accent:#f5a524; --accent2:#f7c65a; --accent-soft:#2a2213; --accent-ink:#181205;
     --green:#3ecf7f; --green-soft:#12291d; --amber:#f0ad4e; --amber-soft:#2c2410; --red:#f0696d; --red-soft:#2c1618; --grey:#7a8494; --grey-soft:#1c2430;
-    --shadow:0 22px 56px rgba(0,0,0,.6); --shadow-sm:0 2px 10px rgba(0,0,0,.4);
-    color-scheme:dark;
-  }
+    --shadow:0 22px 56px rgba(0,0,0,.62); --shadow-sm:0 2px 12px rgba(0,0,0,.45); color-scheme:dark;}
+
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;font-family:var(--fb);color:var(--ink);min-height:100vh;
-    background:radial-gradient(1100px 520px at 50% -8%,color-mix(in srgb,var(--accent) 16%,transparent),transparent),var(--bg);
-    display:flex;flex-direction:column;align-items:center;padding:26px 14px 56px;transition:background-color .3s,color .3s}
-  .kicker{color:var(--muted);font-size:13px;margin:0 0 16px;text-align:center;max-width:440px;line-height:1.5}
+    background:radial-gradient(1200px 560px at 50% -10%,color-mix(in srgb,var(--glow) 60%,transparent),transparent),var(--bg);
+    display:flex;flex-direction:column;align-items:center;padding:22px 14px 54px;transition:background-color .35s,color .35s}
+  .kicker{color:var(--muted);font-size:13px;margin:0 0 14px;text-align:center;max-width:460px;line-height:1.5}
   .kicker b{color:var(--accent)}
-  .theme-toggle{position:fixed;top:16px;right:16px;z-index:200;width:44px;height:44px;border-radius:50%;
-    border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-size:19px;
-    box-shadow:var(--shadow-sm);display:grid;place-items:center;transition:transform .2s}
-  .theme-toggle:hover{transform:rotate(-16deg) scale(1.06)}
-  .theme-toggle .sun{display:none}:root[data-theme="dark"] .theme-toggle .sun{display:block}
-  :root[data-theme="dark"] .theme-toggle .moon{display:none}
+
+  /* Looks switcher */
+  .lookbar{display:flex;align-items:center;gap:8px;margin:0 0 16px;flex-wrap:wrap;justify-content:center}
+  .lookbar .lb-l{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);margin-right:1px}
+  .ls{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--card);color:var(--muted);
+     font-size:12.5px;font-weight:700;padding:8px 14px;border-radius:999px;cursor:pointer;font-family:inherit;transition:.18s;box-shadow:var(--shadow-sm)}
+  .ls i{width:13px;height:13px;border-radius:50%;display:inline-block}
+  .ls:hover{transform:translateY(-1px)}
+  .ls.on{border-color:var(--accent);color:var(--ink);background:var(--accent-soft);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent)}
 
   /* Phone */
-  .phone{width:392px;max-width:100%;height:820px;max-height:calc(100vh - 30px);background:var(--card);
-    border-radius:50px;box-shadow:var(--shadow),0 0 0 11px #0c1017,0 0 0 13px #23303f;
+  .phone{width:392px;max-width:100%;height:824px;max-height:calc(100vh - 20px);background:var(--card);
+    border-radius:52px;box-shadow:var(--shadow),0 0 0 11px #0b0d11,0 0 0 13px #222a34;
     position:relative;overflow:hidden;display:flex;flex-direction:column}
-  .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:112px;height:32px;background:#05070b;border-radius:20px;z-index:80}
+  .island{position:absolute;top:11px;left:50%;transform:translateX(-50%);width:114px;height:33px;background:#04060a;border-radius:20px;z-index:80}
   .screen{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
-  .statusbar{height:52px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 7px;font-size:14px;font-weight:600;flex:none}
+  .statusbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 30px 8px;font-size:14px;font-weight:600;flex:none}
   .statusbar .r{display:flex;gap:6px;align-items:center;font-size:13px}
-  .body{flex:1;overflow-y:auto;padding:4px 16px 104px}
+  .body{flex:1;overflow-y:auto;padding:4px 16px 106px}
   .body::-webkit-scrollbar{width:0}
 
-  h1.title{font-family:var(--fd);font-weight:700;font-size:27px;margin:8px 2px 1px;letter-spacing:-.02em}
+  h1.title{font-family:var(--fd);font-weight:700;font-size:28px;margin:8px 2px 1px;letter-spacing:-.02em}
   .sub{color:var(--muted);font-size:12.5px;margin:0 2px 14px}
   .mono{font-family:var(--fm);font-variant-numeric:tabular-nums}
   .muted{color:var(--muted)} .tiny{font-size:11.5px} .faint{color:var(--faint)}
 
   /* Car header */
-  .carhead{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#7aa2ff));
-    color:#fff;border-radius:22px;padding:17px 18px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;margin:6px 0 16px}
-  .carhead::after{content:"🔧";position:absolute;right:-8px;bottom:-14px;font-size:92px;opacity:.13;transform:rotate(-18deg)}
-  .carhead .nick{font-family:var(--fd);font-weight:700;font-size:20px;letter-spacing:-.01em}
-  .carhead .mm{opacity:.85;font-size:12.5px;margin-top:1px}
-  .carhead .odo{margin-top:14px;display:flex;align-items:baseline;gap:7px}
-  .carhead .odo .v{font-family:var(--fm);font-weight:700;font-size:26px}
-  .carhead .odo .k{opacity:.8;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
-  .gear{position:absolute;top:14px;right:14px;z-index:2;width:34px;height:34px;border-radius:50%;background:#ffffff2b;border:0;color:#fff;font-size:16px;cursor:pointer}
+  .carhead{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent2) 82%,#000 4%));
+    color:var(--accent-ink);border-radius:24px;padding:18px 19px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;margin:6px 0 16px}
+  .carhead::before{content:"";position:absolute;inset:0;background:radial-gradient(120px 120px at 85% 0%,#ffffff33,transparent)}
+  .carhead::after{content:"🔧";position:absolute;right:-6px;bottom:-16px;font-size:96px;opacity:.14;transform:rotate(-18deg)}
+  .carhead .nick{font-family:var(--fd);font-weight:700;font-size:21px;letter-spacing:-.01em;position:relative}
+  .carhead .mm{opacity:.86;font-size:12.5px;margin-top:1px;position:relative}
+  .carhead .odo{margin-top:15px;display:flex;align-items:baseline;gap:7px;position:relative}
+  .carhead .odo .v{font-family:var(--fm);font-weight:700;font-size:27px}
+  .carhead .odo .k{opacity:.82;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+  .gear{position:absolute;top:15px;right:15px;z-index:2;width:35px;height:35px;border-radius:50%;background:#ffffff2e;border:0;color:var(--accent-ink);font-size:16px;cursor:pointer;backdrop-filter:blur(4px)}
 
-  /* Section label */
   .slab{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--faint);margin:16px 4px 9px;display:flex;align-items:center;justify-content:space-between}
-  .slab a{color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:0;text-transform:none}
+  .slab a{color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:0;text-transform:none;cursor:pointer}
 
   /* Next-due strip */
   .strip{display:flex;gap:11px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px}
   .strip::-webkit-scrollbar{height:0}
-  .due{flex:0 0 auto;width:158px;background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:16px;padding:13px 14px;box-shadow:var(--shadow-sm)}
-  .due .ico{font-size:20px} .due .nm{font-weight:700;font-size:14px;margin:6px 0 3px}
-  .due .st{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:999px}
-  .due .sub2{font-size:11px;color:var(--muted);margin-top:6px}
+  .due{flex:0 0 auto;width:160px;background:var(--card);border:1px solid var(--line);border-left-width:4px;border-radius:17px;padding:14px;box-shadow:var(--shadow-sm)}
+  .due .ico{font-size:21px} .due .nm{font-weight:700;font-size:14px;margin:7px 0 4px}
+  .due .st{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .due .sub2{font-size:11px;color:var(--muted);margin-top:7px}
   .s-ok{border-left-color:var(--green)} .s-ok .st{background:var(--green-soft);color:var(--green)}
   .s-soon{border-left-color:var(--amber)} .s-soon .st{background:var(--amber-soft);color:var(--amber)}
   .s-over{border-left-color:var(--red)} .s-over .st{background:var(--red-soft);color:var(--red)}
   .s-none{border-left-color:var(--grey)} .s-none .st{background:var(--grey-soft);color:var(--muted)}
 
-  /* Stats */
   .stats{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-  .stat{background:var(--card);border:1px solid var(--line);border-radius:15px;padding:13px 14px;box-shadow:var(--shadow-sm)}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow-sm)}
   .stat .k{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--faint)}
   .stat .v{font-family:var(--fm);font-weight:700;font-size:20px;margin-top:3px}
 
-  /* Search + chips */
-  .search{width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:13px;background:var(--card);color:var(--ink);font-size:14px;font-family:inherit;margin:2px 0 10px}
+  .search{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:13px;background:var(--card);color:var(--ink);font-size:14px;font-family:inherit;margin:2px 0 10px}
   .search:focus{outline:2px solid var(--accent);border-color:var(--accent)}
   .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;margin:0 -2px}
   .chips::-webkit-scrollbar{height:0}
   .chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;cursor:pointer;transition:.15s}
-  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 
-  /* Timeline card */
-  .entry{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:13px 14px;margin-bottom:11px;box-shadow:var(--shadow-sm);cursor:pointer;transition:.15s}
+  .entry{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:14px;margin-bottom:11px;box-shadow:var(--shadow-sm);cursor:pointer;transition:.15s}
   .entry:active{transform:scale(.99)}
   .entry .r1{display:flex;align-items:center;gap:10px}
   .entry .tagline{font-weight:700;font-size:14.5px;flex:1;line-height:1.25}
@@ -111,33 +122,30 @@
   .mini{border:1px solid var(--line);background:var(--card2);color:var(--muted);font-size:12px;font-weight:600;padding:6px 11px;border-radius:9px;cursor:pointer}
   .mini.del{color:var(--red);border-color:color-mix(in srgb,var(--red) 30%,var(--line))}
 
-  /* Maintenance rows */
-  .mrow{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:11px;box-shadow:var(--shadow-sm)}
+  .mrow{background:var(--card);border:1px solid var(--line);border-radius:17px;padding:15px;margin-bottom:11px;box-shadow:var(--shadow-sm)}
   .mrow .h{display:flex;align-items:center;gap:10px}
-  .mrow .ico{font-size:20px} .mrow .nm{font-weight:700;font-size:15px;flex:1}
+  .mrow .ico{font-size:21px} .mrow .nm{font-weight:700;font-size:15px;flex:1}
   .mrow .st{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:4px 9px;border-radius:999px}
-  .mrow .bar{height:8px;border-radius:999px;background:var(--card2);overflow:hidden;margin:11px 0 7px;border:1px solid var(--line)}
-  .mrow .bar>i{display:block;height:100%;border-radius:999px}
+  .mrow .bar{height:9px;border-radius:999px;background:var(--card2);overflow:hidden;margin:12px 0 7px;border:1px solid var(--line)}
+  .mrow .bar>i{display:block;height:100%;border-radius:999px;transition:width .5s cubic-bezier(.2,.8,.2,1)}
   .mrow .meta{font-size:11.5px;color:var(--muted);display:flex;justify-content:space-between}
-  .mrow .cap{font-size:11px;color:var(--amber);margin-top:8px;display:flex;align-items:center;gap:5px}
+  .mrow .cap{font-size:11px;color:var(--amber);margin-top:9px;display:flex;align-items:center;gap:5px}
   .anchor{font-size:10.5px;color:var(--faint);font-style:italic;margin-top:4px}
 
-  /* Tab bar + FAB */
-  .tabbar{position:absolute;left:0;right:0;bottom:0;height:82px;background:color-mix(in srgb,var(--card) 88%,transparent);
-    backdrop-filter:blur(14px);border-top:1px solid var(--line);display:flex;padding:9px 8px 22px;z-index:50}
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:84px;background:color-mix(in srgb,var(--card) 86%,transparent);
+    backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;padding:9px 8px 24px;z-index:50}
   .tab{flex:1;border:0;background:none;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--faint);font-size:10.5px;font-weight:700;cursor:pointer;padding-top:6px}
   .tab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
   .tab.active{color:var(--accent)}
-  .fab{position:absolute;right:18px;bottom:96px;z-index:55;width:58px;height:58px;border-radius:19px;border:0;cursor:pointer;
-    background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 60%,#7aa2ff));color:#fff;font-size:28px;
-    box-shadow:0 10px 24px color-mix(in srgb,var(--accent) 45%,transparent);display:grid;place-items:center;transition:transform .15s}
+  .fab{position:absolute;right:18px;bottom:98px;z-index:55;width:60px;height:60px;border-radius:20px;border:0;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--accent-ink);font-size:29px;
+    box-shadow:0 12px 26px color-mix(in srgb,var(--accent) 48%,transparent);display:grid;place-items:center;transition:transform .15s}
   .fab:active{transform:scale(.92)}
 
-  /* Sheet */
-  .sheet{position:absolute;inset:0;background:var(--card);z-index:65;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+  .sheet{position:absolute;inset:0;background:var(--card);z-index:65;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .34s cubic-bezier(.2,.8,.2,1)}
   .sheet.show{transform:translateY(0)}
   .sh-head{padding:16px 18px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line)}
-  .sh-head .t{font-family:var(--fd);font-weight:700;font-size:18px}
+  .sh-head .t{font-family:var(--fd);font-weight:700;font-size:19px}
   .sh-body{flex:1;overflow-y:auto;padding:16px 18px 24px}
   .x{margin-left:auto;background:var(--card2);border:0;width:34px;height:34px;border-radius:50%;font-size:16px;cursor:pointer;color:var(--muted)}
   label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:14px 2px 6px}
@@ -150,54 +158,52 @@
   .jp{border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:13px;font-weight:600;padding:8px 12px;border-radius:11px;cursor:pointer;user-select:none;display:flex;align-items:center;gap:6px}
   .jp.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
   .btn{width:100%;border:0;border-radius:14px;padding:15px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit}
-  .btn-primary{background:var(--accent);color:#fff} .btn-primary:active{filter:brightness(.94)}
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:var(--accent-ink)} .btn-primary:active{filter:brightness(.95)}
   .btn-lite{background:var(--card2);color:var(--ink);border:1px solid var(--line)}
 
-  /* settings bits */
   .setrow{display:flex;align-items:center;gap:12px;padding:14px 2px;border-bottom:1px solid var(--line)}
   .setrow:last-child{border-bottom:0}
   .setrow .l{flex:1} .setrow .l .n{font-weight:600;font-size:14px} .setrow .l .d{font-size:11.5px;color:var(--muted)}
-  .switch{width:46px;height:28px;border-radius:999px;background:var(--line);position:relative;transition:.15s;flex:none;cursor:pointer;border:0}
-  .switch.on{background:var(--accent)}
-  .switch i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.15s}
-  .switch.on i{left:21px}
   .backup{background:var(--green-soft);border:1px solid color-mix(in srgb,var(--green) 30%,var(--line));border-radius:14px;padding:13px 14px;display:flex;align-items:center;gap:11px;margin-bottom:14px}
   .backup .ic{font-size:22px}
 
-  /* Toast + Undo */
-  .toast{position:absolute;left:50%;bottom:100px;transform:translateX(-50%) translateY(18px);opacity:0;
+  .toast{position:absolute;left:50%;bottom:102px;transform:translateX(-50%) translateY(18px);opacity:0;
     background:#0d1420;color:#fff;padding:12px 16px;border-radius:13px;font-size:13.5px;font-weight:600;
     transition:.25s;z-index:75;pointer-events:none;display:flex;align-items:center;gap:12px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
   .toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
-  .toast button{background:none;border:0;color:#7fb0ff;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
+  .toast button{background:none;border:0;color:var(--accent2);font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
 
-  /* Splash */
-  .splash{position:absolute;inset:0;z-index:120;background:linear-gradient(160deg,#14224a,#22409e 60%,#2551f5);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;transition:.45s}
+  .splash{position:absolute;inset:0;z-index:120;background:linear-gradient(158deg,#0e1218,color-mix(in srgb,var(--accent) 62%,#0e1218));
+    display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;transition:.48s}
   .splash.hide{opacity:0;transform:scale(1.05);pointer-events:none}
-  .splash .logo{font-family:var(--fd);font-weight:700;font-size:30px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
-  .splash .gauge{margin:26px 0 8px;width:150px;height:150px;position:relative}
-  .splash .num{font-family:var(--fm);font-weight:700;font-size:34px}
-  .splash .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.7;margin-top:2px}
-  .splash .go{margin-top:34px;background:#fff;color:#14224a;border:0;border-radius:14px;padding:14px 26px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;opacity:0;transform:translateY(10px);transition:.4s}
+  .splash .logo{font-family:var(--fd);font-weight:700;font-size:29px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px}
+  .splash .gauge{margin:26px 0 8px;width:154px;height:154px;position:relative}
+  .splash .num{font-family:var(--fm);font-weight:700;font-size:35px}
+  .splash .lbl{font-size:11px;letter-spacing:.16em;text-transform:uppercase;opacity:.72;margin-top:2px}
+  .splash .go{margin-top:34px;background:#fff;color:#12151b;border:0;border-radius:14px;padding:14px 28px;font-weight:800;font-size:15px;cursor:pointer;font-family:inherit;opacity:0;transform:translateY(10px);transition:.4s}
   .splash .go.show{opacity:1;transform:none}
-  .splash .cap{position:absolute;bottom:26px;font-size:11px;opacity:.7;text-align:center;padding:0 30px}
+  .splash .cap{position:absolute;bottom:26px;font-size:11px;opacity:.72;text-align:center;padding:0 30px}
 
   .empty{text-align:center;color:var(--muted);padding:40px 20px;font-size:13.5px}
   .backlink{margin-top:18px;font-size:13px;text-align:center}
   .backlink a{color:var(--accent);font-weight:700;text-decoration:none}
-  @media(max-width:430px){.theme-toggle{top:10px;right:10px}}
 </style>
 </head>
 <body>
-  <button class="theme-toggle" aria-label="Toggle light/dark" onclick="toggleTheme()"><span class="moon">🌙</span><span class="sun">☀️</span></button>
-  <p class="kicker">📱 <b>Car Service History</b> — tap around a real prototype with <b>fake sample data</b>. Add a service and watch the <b>“next due” predictions recompute live</b>.</p>
+  <p class="kicker">📱 <b>Car Service History</b> — a live prototype with fake data. Tap a <b>Look</b> to reskin it instantly, then hit <b>+</b> and watch the predictions recompute.</p>
+
+  <div class="lookbar" id="lookbar">
+    <span class="lb-l">Looks</span>
+    <button class="ls" data-look="cognac" onclick="setLook('cognac')"><i style="background:#b45816"></i>Cognac</button>
+    <button class="ls" data-look="petrol" onclick="setLook('petrol')"><i style="background:#0d8f84"></i>Petrol</button>
+    <button class="ls" data-look="racing" onclick="setLook('racing')"><i style="background:#c1121f"></i>Racing</button>
+    <button class="ls" data-look="midnight" onclick="setLook('midnight')"><i style="background:#f5a524"></i>Midnight</button>
+  </div>
 
   <div class="phone">
     <div class="island"></div>
     <div class="screen">
 
-      <!-- SPLASH -->
       <div class="splash" id="splash">
         <div class="logo">🔧 Service History</div>
         <div class="gauge">
@@ -227,7 +233,7 @@
 
       <nav class="tabbar">
         <button class="tab active" data-tab="history" onclick="go('history')">
-          <svg viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18"/><circle cx="7" cy="5" r="0.5"/></svg>History</button>
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg>History</button>
         <button class="tab" data-tab="due" onclick="go('due')">
           <svg viewBox="0 0 24 24"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Maintenance</button>
         <button class="tab" data-tab="insights" onclick="go('insights')">
@@ -240,7 +246,6 @@
   <p class="backlink"><a href="../index.html">← Back to hub</a> &nbsp;·&nbsp; <a href="spec.html">Read the spec →</a> &nbsp;·&nbsp; <a href="review.html">See the review →</a></p>
 
 <script>
-/* ============ STATE (fake sample data) ============ */
 const JOBS={
   oil:{label:"Engine oil",icon:"🛢️"}, air_filter:{label:"Air filter",icon:"💨"},
   cabin_filter:{label:"Cabin filter",icon:"❄️"}, brake_fluid:{label:"Brake fluid",icon:"🛑"},
@@ -248,10 +253,7 @@ const JOBS={
   tires:{label:"Tyres",icon:"🛞"}, battery:{label:"Battery",icon:"🔋"},
   transmission:{label:"Transmission",icon:"⚙️"}, suspension:{label:"Suspension",icon:"🔩"}, engine:{label:"Engine",icon:"🚗"}
 };
-const INTERVALS={
-  oil:{km:10000}, air_filter:{km:20000}, cabin_filter:{km:20000,timeHint:12},
-  brake_fluid:{km:40000,timeHint:24}, spark_plugs:{km:100000}
-};
+const INTERVALS={oil:{km:10000},air_filter:{km:20000},cabin_filter:{km:20000,timeHint:12},brake_fluid:{km:40000,timeHint:24},spark_plugs:{km:100000}};
 let uid=100;
 const state={
   car:{nick:"My Corolla",make:"Toyota",model:"Corolla",year:2019,plate:"Dubai · A 12345",currency:"AED"},
@@ -267,7 +269,6 @@ const state={
 };
 let filterTag=null, searchQ="", lastDeleted=null, undoTimer=null;
 
-/* ============ COMPUTE (the live engine) ============ */
 const live=()=>state.entries.filter(e=>!e.deleted);
 function currentKm(){const o=live().map(e=>e.odometer).filter(x=>x!=null);return o.length?Math.max(...o):0;}
 function lastDone(tag){
@@ -282,7 +283,7 @@ function predict(tag){
   const next=ld.odometer+iv.km,rem=next-cur,soon=Math.min(iv.km*0.1,1000);
   const status=rem<=0?"over":rem<=soon?"soon":"ok";
   const pct=Math.max(0,Math.min(100,((cur-ld.odometer)/iv.km)*100));
-  return {status,rem,next,pct,anchor:ld.anchor,timeHint:iv.timeHint,since:cur-ld.odometer,iv};
+  return {status,rem,next,pct,anchor:ld.anchor,timeHint:iv.timeHint,iv};
 }
 const STt={ok:{cls:"s-ok",mk:"✓",w:"OK"},soon:{cls:"s-soon",mk:"▲",w:"Due soon"},over:{cls:"s-over",mk:"!",w:"Overdue"},none:{cls:"s-none",mk:"○",w:"Not logged"}};
 function statusLine(tag){
@@ -296,7 +297,6 @@ function fmt(n){return Math.round(n).toLocaleString("en-US");}
 function money(n){return state.car.currency+" "+Number(n).toLocaleString("en-US");}
 function niceDate(d){const[y,m,da]=d.split("-");return da+" "+["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][+m-1]+" "+y;}
 
-/* ============ VIEWS ============ */
 const body=document.getElementById("body");
 function go(tab){
   document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t.dataset.tab===tab));
@@ -319,19 +319,17 @@ const VIEWS={
        </div>
        <div id="hlist">${list.length?list.map(entryCard).join(""):`<div class="empty">No services match.</div>`}</div>`;
   },
-  due:()=>{
-    return `<h1 class="title">Maintenance</h1><p class="sub">Based on current mileage <b class="mono">${fmt(currentKm())} km</b> — from your latest entry.</p>`+
+  due:()=>`<h1 class="title">Maintenance</h1><p class="sub">Based on current mileage <b class="mono">${fmt(currentKm())} km</b> — from your latest entry.</p>`+
       Object.keys(INTERVALS).map(mrow).join("")+
-      `<p class="tiny faint" style="text-align:center;margin-top:6px">Predictions use only services logged here. Add a “last done” anchor for a used car.</p>`;
-  },
+      `<p class="tiny faint" style="text-align:center;margin-top:6px">Predictions use only services logged here. Add a “last done” anchor for a used car.</p>`,
   insights:()=>{
     const es=live(); const total=es.reduce((s,e)=>s+e.cost,0);
     const thisY=es.filter(e=>e.date.startsWith("2026")).reduce((s,e)=>s+e.cost,0);
-    const yrs=Math.max(1,(new Date(es.map(e=>e.date).sort().at(-1))-new Date(es.map(e=>e.date).sort()[0]))/3.15576e10);
+    const ds=es.map(e=>e.date).sort();
+    const yrs=Math.max(1,(new Date(ds.at(-1))-new Date(ds[0]))/3.15576e10);
     const avg=total/yrs;
     const byJob={}; es.forEach(e=>e.tags.forEach(t=>byJob[t]=(byJob[t]||0)+e.cost/e.tags.length));
     const top=Object.entries(byJob).sort((a,b)=>b[1]-a[1]).slice(0,5);const mx=Math.max(...top.map(t=>t[1]));
-    const pal=["#2551f5","#12a150","#e08600","#a855f7","#ec4899"];
     return `<h1 class="title">Insights</h1><p class="sub">What this car has cost you.</p>
       <div class="stats">
         <div class="stat"><div class="k">Total spent</div><div class="v">${money(total)}</div></div>
@@ -340,10 +338,10 @@ const VIEWS={
         <div class="stat"><div class="k">Avg / year</div><div class="v">${money(Math.round(avg))}</div></div>
       </div>
       <div class="slab" style="margin-top:20px">Where the money went</div>
-      <div class="stat" style="padding:15px 15px 7px">
-        ${top.map((t,i)=>`<div class="catrow" style="margin-bottom:12px">
+      <div class="stat" style="padding:15px 15px 5px">
+        ${top.map((t,i)=>`<div style="margin-bottom:12px">
           <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>${JOBS[t[0]].icon} ${JOBS[t[0]].label}</span><span class="mono muted">${money(Math.round(t[1]))}</span></div>
-          <div class="bar" style="background:var(--card2)"><i style="width:${(t[1]/mx*100)}%;background:${pal[i]}"></i></div></div>`).join("")}
+          <div class="bar" style="height:9px;border-radius:999px;background:var(--card2);overflow:hidden;border:1px solid var(--line)"><i style="display:block;height:100%;width:${(t[1]/mx*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></i></div></div>`).join("")}
       </div>`;
   }
 };
@@ -378,7 +376,7 @@ function mrow(t){
   const {s,txt,p}=statusLine(t),iv=INTERVALS[t];
   const barc=p.status==="over"?"var(--red)":p.status==="soon"?"var(--amber)":p.status==="ok"?"var(--green)":"var(--grey)";
   return `<div class="mrow">
-    <div class="h"><span class="ico">${JOBS[t].icon}</span><span class="nm">${JOBS[t].label}</span><span class="st ${s.cls.replace('s-','s-')}" style="background:${statusBg(p.status)};color:${statusFg(p.status)}">${s.mk} ${s.w}</span></div>
+    <div class="h"><span class="ico">${JOBS[t].icon}</span><span class="nm">${JOBS[t].label}</span><span class="st" style="background:${statusBg(p.status)};color:${statusFg(p.status)}">${s.mk} ${s.w}</span></div>
     ${p.status!=="none"?`<div class="bar"><i style="width:${p.pct}%;background:${barc}"></i></div>
       <div class="meta"><span>${txt}</span><span>every ${fmt(iv.km)} km</span></div>`:
       `<div class="anchor" style="margin-top:10px">No history yet — tap + to log your last ${JOBS[t].label.toLowerCase()}.</div>`}
@@ -397,7 +395,6 @@ function refreshHistoryList(){
   document.getElementById("hlist").innerHTML=list.length?list.map(entryCard).join(""):`<div class="empty">No services match.</div>`;
 }
 
-/* ============ ADD / EDIT SHEET ============ */
 let picked=new Set(), editId=null;
 function openAdd(id){
   editId=id||null; const e=id?state.entries.find(x=>x.id===id):null;
@@ -415,7 +412,7 @@ function openAdd(id){
       <div><label>Cost (${state.car.currency})</label><input inputmode="decimal" id="fCost" placeholder="0" value="${e?e.cost:""}"></div>
     </div>
     <label>What was done? <span class="faint" style="font-weight:500">· tick all</span></label>
-    <div class="jobpick" id="jobPick">${Object.keys(JOBS).map(t=>`<div class="jp ${picked.has(t)?'on':''}" data-t="${t}" onclick="togJob('${t}')">${JOBS[t].icon} ${JOBS[t].label}</div>`).join("")}</div>
+    <div class="jobpick">${Object.keys(JOBS).map(t=>`<div class="jp ${picked.has(t)?'on':''}" data-t="${t}" onclick="togJob('${t}')">${JOBS[t].icon} ${JOBS[t].label}</div>`).join("")}</div>
     <label>Notes <span class="faint" style="font-weight:500">· optional</span></label>
     <textarea id="fNotes" rows="2" placeholder="Anything worth remembering…">${e?e.notes:""}</textarea>
     <button class="btn btn-primary" style="margin-top:18px" onclick="saveEntry()">${e?"Save changes":"Save service"}</button>
@@ -450,7 +447,6 @@ function delEntry(id){
 function undoDel(){if(lastDeleted){state.entries.splice(lastDeleted.i,0,lastDeleted.e);lastDeleted=null;go('history');toast("Restored ✓");}}
 function closeSheet(){document.getElementById("sheet").classList.remove("show");}
 
-/* ============ SETTINGS ============ */
 function openSettings(){
   document.getElementById("sheetTitle").textContent="Settings";
   document.getElementById("sheetBody").innerHTML=`
@@ -461,23 +457,24 @@ function openSettings(){
     <div class="setrow"><div class="l"><div class="n">${state.car.nick}</div><div class="d">${state.car.year} ${state.car.make} ${state.car.model}</div></div><button class="mini" onclick="toast('Edit car (mockup)')">Edit</button></div>
     <div class="setrow"><div class="l"><div class="n">Plate</div><div class="d">${state.car.plate}</div></div></div>
     <div class="setrow"><div class="l"><div class="n">Currency</div><div class="d">Shown on every cost</div></div><div class="mono">${state.car.currency}</div></div>
-    <div class="slab" style="margin-top:12px">Appearance</div>
-    <div class="setrow"><div class="l"><div class="n">Dark mode</div><div class="d">Easy on the eyes at night</div></div>
-      <button class="switch ${document.documentElement.getAttribute('data-theme')==='dark'?'on':''}" id="darkSw" onclick="toggleTheme(true)"><i></i></button></div>
+    <div class="slab" style="margin-top:14px">Looks</div>
+    <div class="lookbar" style="margin:4px 0 0;justify-content:flex-start;flex-wrap:wrap">
+      <button class="ls" data-look="cognac" onclick="setLook('cognac')"><i style="background:#b45816"></i>Cognac</button>
+      <button class="ls" data-look="petrol" onclick="setLook('petrol')"><i style="background:#0d8f84"></i>Petrol</button>
+      <button class="ls" data-look="racing" onclick="setLook('racing')"><i style="background:#c1121f"></i>Racing</button>
+      <button class="ls" data-look="midnight" onclick="setLook('midnight')"><i style="background:#f5a524"></i>Midnight</button>
+    </div>
     <p class="tiny faint" style="text-align:center;margin-top:20px">Mockup · not all buttons are wired.</p>`;
   document.getElementById("sheet").classList.add("show");
+  markLook();
 }
 
-/* ============ TOAST / THEME / SPLASH ============ */
 let tT;
 function toast(msg){const t=document.getElementById("toast");t.innerHTML=msg;t.classList.add("show");clearTimeout(tT);clearTimeout(undoTimer);tT=setTimeout(()=>t.classList.remove("show"),2200);}
-function toggleTheme(fromSheet){
-  const cur=document.documentElement.getAttribute("data-theme"),next=cur==="dark"?"light":"dark";
-  document.documentElement.setAttribute("data-theme",next);try{localStorage.setItem("csh-hub-theme",next)}catch(e){}
-  const sw=document.getElementById("darkSw");if(sw)sw.classList.toggle("on",next==="dark");
-}
+function setLook(name){document.documentElement.setAttribute("data-look",name);try{localStorage.setItem("csh-look",name)}catch(e){}markLook();}
+function markLook(){const n=document.documentElement.getAttribute("data-look");document.querySelectorAll(".ls").forEach(b=>b.classList.toggle("on",b.dataset.look===n));}
 function enterApp(){document.getElementById("splash").classList.add("hide");}
-/* splash odometer roll */
+
 (function(){
   const target=currentKm(),el=document.getElementById("odoRoll"),arc=document.getElementById("gArc"),C=327;
   const start=performance.now(),dur=1400;
@@ -490,8 +487,7 @@ function enterApp(){document.getElementById("splash").classList.add("hide");}
   requestAnimationFrame(step);
 })();
 
-/* init */
-go("history");
+go("history"); markLook();
 </script>
 </body>
 </html>
