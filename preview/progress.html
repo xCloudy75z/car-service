@@ -83,12 +83,12 @@ const PHASES=[
  {p:"See it before we build it",tasks:[
    {n:"Project hub + GitHub Pages",d:"live site so you can review with your eyes",s:"done"},
    {n:"Interactive mockup + Looks",d:"live predictions, 4 premium palettes, phone frame",s:"done"},
-   {n:"Your visual sign-off",d:"pick the look & feel — waiting on you",s:"active"},
+   {n:"Your visual sign-off",d:"Cognac approved ✓",s:"done"},
  ]},
  {p:"Build",tasks:[
-   {n:"Implementation plan",d:"step-by-step, test-first build order",s:"todo"},
-   {n:"Build core + package as installable app",d:"skeleton → add/timeline → predictions",s:"todo"},
-   {n:"Prove it runs, then finish",d:"search/stats/backup → ship to GitHub Pages",s:"todo"},
+   {n:"Implementation plan",d:"sliced, test-first build order — written ✓",s:"done"},
+   {n:"Slice 1 — deployable core",d:"engine + store + Home + add/edit + PWA → deploy & verify",s:"active"},
+   {n:"Slices 2–5 — features + hardening",d:"predictions · search/stats · backup · a11y/CSP · ship",s:"todo"},
  ]},
 ];
 const all=PHASES.flatMap(p=>p.tasks);

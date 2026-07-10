@@ -81,6 +81,9 @@ One scrolling **Home** screen plus slide-in sheets:
 
 ## 8. UX & Accessibility (baked in from step 1, not "final polish") [R]
 
+- **Visual direction: Cognac** — a warm leather-and-paper palette on a light base
+  (accent ~#b45816, warm off-white cards), display font Bricolage Grotesque,
+  JetBrains Mono for figures. Approved by the owner 2026-07-10 from a 4-look gallery.
 - Mobile-first, premium, calm; soft shadows, rounded corners, subtle motion.
 - Light default; dark toggle; theme applied before first paint (no flash), and
   the theme cache is kept in sync on restore.
@@ -344,6 +347,8 @@ inspection → VIN/OBD → AI insights → analytics.
 11. **Used-car "last done before logging" anchors.** **[D]**
 12. Accessibility, transactional restore, PWA update strategy, CSP, and the full
     minor list — adopted from the adversarial review. **[R]**
+13. **Visual direction = Cognac** (warm leather/paper, light). Chosen 2026-07-10
+    from a live 4-look gallery in the mockup. Other looks not shipped in MVP. **[D]**
 
 ## Build Sequence (verifiable steps)
 
