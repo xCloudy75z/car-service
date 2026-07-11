@@ -43,3 +43,65 @@ test("migrate on already-current data is a no-op", () => {
   const current = migrate(v1blob());
   assert.equal(migrate(current).version, CURRENT_VERSION);
 });
+
+// ---- v2 → v3 (customJobs + ghost-key drop) ----
+
+const v2blob = () => ({
+  version: 2,
+  activeCarId: "car-1",
+  cars: [
+    {
+      id: "car-1",
+      profile: { name: "A", make: "", model: "", year: null, plate: "" },
+      entries: [{ id: "e1", date: "2026-01-01", odometer: 1000, tags: ["oil"], deletedAt: null }],
+      intervals: { oil: { km: 10000 }, ghost_key: { km: 5000 } },
+      baselines: {}
+    }
+  ],
+  settings: { theme: "dark", currencyLabel: "AED" }
+});
+
+test("v2 → v3: each car gains customJobs:{} and version bumps to 3", () => {
+  const out = migrate(v2blob());
+  assert.equal(out.version, 3);
+  assert.deepEqual(out.cars[0].customJobs, {});
+});
+
+test("v2 → v3: an existing customJobs object is preserved", () => {
+  const blob = v2blob();
+  blob.cars[0].customJobs = { cj_ab12: { label: "Coolant flush", icon: "❄️" } };
+  const out = migrate(blob);
+  assert.deepEqual(out.cars[0].customJobs, { cj_ab12: { label: "Coolant flush", icon: "❄️" } });
+});
+
+test("v2 → v3: a stray intervals key (not in JOBS ∪ customJobs) is dropped", () => {
+  const out = migrate(v2blob());
+  assert.equal("ghost_key" in out.cars[0].intervals, false);
+  assert.equal("oil" in out.cars[0].intervals, true);
+});
+
+test("v2 → v3: a custom interval key IS kept when it exists in customJobs", () => {
+  const blob = v2blob();
+  blob.cars[0].customJobs = { cj_ab12: { label: "Coolant flush", icon: "❄️" } };
+  blob.cars[0].intervals.cj_ab12 = { km: 30000 };
+  const out = migrate(blob);
+  assert.deepEqual(out.cars[0].intervals.cj_ab12, { km: 30000 });
+});
+
+test("v2 → v3: non-array cars does not throw (safe empty garage)", () => {
+  const out = migrate({ version: 2, cars: "oops", settings: {} });
+  assert.equal(out.version, 3);
+  assert.deepEqual(out.cars, []);
+});
+
+test("migrate is idempotent through v3 (running twice = running once)", () => {
+  const once = migrate(v2blob());
+  const twice = migrate(migrate(v2blob()));
+  assert.deepEqual(twice, once);
+});
+
+test("v1 → v3 chains: single car gains customJobs:{} and lands at v3", () => {
+  const out = migrate(v1blob());
+  assert.equal(out.version, 3);
+  assert.deepEqual(out.cars[0].customJobs, {});
+});

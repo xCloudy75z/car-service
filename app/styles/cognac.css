@@ -378,6 +378,51 @@ textarea { resize: vertical; min-height: 60px; }
 .backup .ic { font-size: 22px; align-self: flex-start; }
 .backup-status { font-weight: 600; margin-top: 2px; }
 
+/* Destructive confirm button (delete car). */
+.btn-danger { background: var(--red); color: #fff; }
+.btn-danger:active { filter: brightness(.95); }
+
+/* ---- Car header: switch pill (only shown with >1 car) ---- */
+.carhead .nick-switch {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: #ffffff26; border: 0; border-radius: 999px;
+  margin: -2px 0 0 -8px; padding: 4px 12px 4px 12px;
+  color: var(--accent-ink); cursor: pointer; text-align: left;
+  max-width: calc(100% - 50px); /* stay clear of the 44px gear */
+  transition: background .15s;
+}
+.carhead .nick-switch:hover { background: #ffffff3d; }
+.carhead .nick-switch .nick-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.carhead .nick-switch .nick-chev { font-family: var(--fb); font-size: 13px; font-weight: 700; opacity: .85; }
+
+/* ---- Car switcher sheet: one tappable row per car ---- */
+.carpick {
+  display: block; width: 100%; text-align: left; cursor: pointer; font: inherit;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 14px;
+  padding: 13px 14px; margin-bottom: 10px; box-shadow: var(--shadow-sm);
+}
+.carpick:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+.carpick[aria-current="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.carpick .cp-top { display: flex; align-items: center; gap: 8px; }
+.carpick .cp-name { font-weight: 700; font-size: 15px; flex: 1; }
+.carpick .cp-tick { color: var(--accent); font-weight: 800; font-size: 15px; }
+.carpick .cp-sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* ---- Settings: Your Garage list ---- */
+.garagerow { display: flex; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+.garagerow:last-child { border-bottom: 0; }
+.garagerow .l { flex: 1; min-width: 0; }
+.garagerow .l .n { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.garagerow .l .d { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.garagerow .gactions { display: flex; gap: 8px; flex: 0 0 auto; }
+.badge-active {
+  font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--green); background: var(--green-soft);
+  border: 1px solid color-mix(in srgb, var(--green) 30%, var(--line));
+  padding: 2px 7px; border-radius: 999px;
+}
+
 /* Gentle "not backed up yet" reminder on the History view. */
 .nudge {
   display: flex; align-items: center; gap: 10px; width: 100%;

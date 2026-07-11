@@ -24,6 +24,30 @@ function defaultNow() {
 
 const cloneIntervals = () => JSON.parse(JSON.stringify(DEFAULT_INTERVALS));
 
+// Profile sanitising: string fields trimmed to a sane cap; `year` coerced to a
+// plausible integer or null. Returns ONLY the provided keys (a patch), so it
+// serves both addCar (merged onto a blank base) and updateCarProfile (shallow merge).
+const MAX_PROFILE = 60;
+const PROFILE_STR_KEYS = ["name", "make", "model", "plate"];
+const BLANK_PROFILE = { name: "", make: "", model: "", year: null, plate: "" };
+
+function cleanYear(v) {
+  const n = typeof v === "number" ? v : typeof v === "string" ? parseInt(v, 10) : NaN;
+  if (!Number.isFinite(n)) return null;
+  const y = Math.trunc(n);
+  return y >= 1900 && y <= 2100 ? y : null;
+}
+
+function sanitizeProfilePatch(patch) {
+  const p = patch && typeof patch === "object" ? patch : {};
+  const out = {};
+  for (const k of PROFILE_STR_KEYS) {
+    if (k in p) out[k] = typeof p[k] === "string" ? p[k].slice(0, MAX_PROFILE) : "";
+  }
+  if ("year" in p) out.year = cleanYear(p.year);
+  return out;
+}
+
 // Rebuild only the active car via `fn`, returning a new state object (immutable-ish).
 function replaceActiveCar(state, fn) {
   const car = getActiveCar(state);
@@ -51,6 +75,7 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
           profile: { name: "", make: "", model: "", year: null, plate: "" },
           entries: [],
           intervals: cloneIntervals(),
+          customJobs: {},
           baselines: {}
         }
       ],
@@ -299,8 +324,72 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     return { ok: true, state: next };
   }
 
-  // Bring back the pre-restore snapshot, one level. No-op if none.
-  function undoRestore() {
+  // ---- Cars (multi-vehicle) -------------------------------------------------
+
+  // Add a new car (fresh id, sanitised profile, default intervals, empty
+  // entries/customJobs/baselines) and make it the active car.
+  function addCar(profile) {
+    const s = ensureLoaded();
+    const id = createId();
+    const car = {
+      id,
+      profile: { ...BLANK_PROFILE, ...sanitizeProfilePatch(profile) },
+      entries: [],
+      intervals: cloneIntervals(),
+      customJobs: {},
+      baselines: {}
+    };
+    return persist({ ...s, cars: [...s.cars, car], activeCarId: id });
+  }
+
+  // Make `id` the active car. Unknown id → no-op + lastError.
+  function switchCar(id) {
+    const s = ensureLoaded();
+    if (!s.cars.some((c) => c.id === id)) {
+      lastError = new Error(`switchCar: no car with id "${id}"`);
+      return s;
+    }
+    return persist({ ...s, activeCarId: id });
+  }
+
+  // Shallow-merge sanitised profile fields onto the car's existing profile.
+  function updateCarProfile(id, patch) {
+    const s = ensureLoaded();
+    const clean = sanitizeProfilePatch(patch);
+    return persist({
+      ...s,
+      cars: s.cars.map((c) =>
+        c.id === id ? { ...c, profile: { ...c.profile, ...clean } } : c
+      )
+    });
+  }
+
+  // Delete a car. Refuses to delete the last car (lastError, no write). If the
+  // deleted car was active, active moves to the new cars[0]. Takes a one-level
+  // undo snapshot (shared slot, restored via undoLast()).
+  function deleteCar(id) {
+    const s = ensureLoaded();
+    if (s.cars.length === 1) {
+      lastError = new Error("deleteCar: cannot delete the last car");
+      return s;
+    }
+    const cars = s.cars.filter((c) => c.id !== id);
+    if (cars.length === s.cars.length) {
+      lastError = new Error(`deleteCar: no car with id "${id}"`);
+      return s;
+    }
+    const activeCarId = s.activeCarId === id ? cars[0].id : s.activeCarId;
+    snapshot = s; // enable one-level undo of this delete
+    return persist({ ...s, cars, activeCarId });
+  }
+
+  // ---- Shared one-level undo ------------------------------------------------
+
+  // Restore the last snapshot (from a delete or a restore/import). One level:
+  // the slot is shared, so whichever operation last took a snapshot is the one
+  // that gets undone; a second call is a no-op. `undoRestore` is kept as an
+  // alias for older callers (app.js) that still call it by that name.
+  function undoLast() {
     if (!snapshot) return ensureLoaded();
     const restored = snapshot;
     snapshot = null;
@@ -314,11 +403,16 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     deleteEntry,
     setBaseline,
     clearBaseline,
+    addCar,
+    switchCar,
+    updateCarProfile,
+    deleteCar,
     exportBackup,
     setLastBackupAt,
     previewImport,
     commitImport,
-    undoRestore,
+    undoLast,
+    undoRestore: undoLast,
     getState: () => ensureLoaded(),
     createId,
     get lastError() {

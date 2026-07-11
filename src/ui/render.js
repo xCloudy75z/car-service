@@ -84,7 +84,11 @@ function statusPill(s) {
   ]);
 }
 
-export function carHeader(car, currency, onGear) {
+// carHeader(car, currency, onGear, onSwitch?, carCount?)
+// When carCount > 1, the car name becomes a SEPARATE pill button (sibling of the
+// gear — never nested) that opens the car switcher. With one car it's a plain
+// heading, so single-car users see exactly the same header as before.
+export function carHeader(car, currency, onGear, onSwitch, carCount = 1) {
   const p = car.profile || {};
   const nick = p.name && String(p.name).trim() ? String(p.name).trim() : "My Garage";
 
@@ -95,10 +99,26 @@ export function carHeader(car, currency, onGear) {
   if (p.plate && String(p.plate).trim()) sub = sub ? `${sub} · ${String(p.plate).trim()}` : String(p.plate).trim();
   if (!sub) sub = "Tap the gear to add your car details";
 
+  const nameNode =
+    carCount > 1 && typeof onSwitch === "function"
+      ? el(
+          "button",
+          {
+            class: "nick nick-switch",
+            attrs: { type: "button", "aria-label": `Switch car — current: ${nick}` },
+            on: { click: onSwitch }
+          },
+          [
+            el("span", { class: "nick-name", text: nick }),
+            el("span", { class: "nick-chev", attrs: { "aria-hidden": "true" }, text: "▾" })
+          ]
+        )
+      : el("div", { class: "nick", text: nick });
+
   const cur = currentKm(car);
   return el("section", { class: "carhead", attrs: { "aria-label": "Vehicle summary" } }, [
     el("button", { class: "gear", attrs: { type: "button", "aria-label": "Settings" }, on: { click: onGear } }, [gearIcon()]),
-    el("div", { class: "nick", text: nick }),
+    nameNode,
     el("div", { class: "mm", text: sub }),
     el("div", { class: "odo" }, [
       el("span", { class: "odo-v mono", text: cur > 0 ? fmtN(cur) : "—" }),

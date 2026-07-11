@@ -30,6 +30,12 @@ test("fresh load returns a seeded single-car state at CURRENT_VERSION", () => {
   assert.equal(typeof state.cars[0].intervals.oil.km, "number");
 });
 
+test("fresh seed car includes an empty customJobs object (v3 shape)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const state = store.load();
+  assert.deepEqual(state.cars[0].customJobs, {});
+});
+
 test("load persists the seed so a second store sees the same data", () => {
   const storage = makeStorage();
   const s1 = createStore(storage, makeClock());
@@ -239,6 +245,120 @@ test("export → commitImport roundtrip preserves entry count / dates / costs", 
   assert.equal(entries[0].cost, 120);
   assert.equal(entries[1].date, "2026-03-01");
   assert.equal(entries[1].cost, 80);
+});
+
+// ---- Cars (multi-vehicle, Slice 6a) ----
+
+test("addCar appends a fully-shaped car and makes it active", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const first = store.load();
+  const firstId = first.cars[0].id;
+  const state = store.addCar({ name: "Second", make: "Toyota", model: "Corolla", year: 2019, plate: "X1" });
+  assert.equal(state.cars.length, 2);
+  const added = state.cars[1];
+  assert.equal(state.activeCarId, added.id);
+  assert.notEqual(added.id, firstId);
+  assert.deepEqual(added.entries, []);
+  assert.deepEqual(added.customJobs, {});
+  assert.deepEqual(added.baselines, {});
+  assert.equal(typeof added.intervals.oil.km, "number");
+  assert.deepEqual(added.profile, { name: "Second", make: "Toyota", model: "Corolla", year: 2019, plate: "X1" });
+});
+
+test("addCar sanitises the profile (caps strings, coerces year) and fills blanks", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const long = "x".repeat(200);
+  const state = store.addCar({ name: long, year: "abcd" });
+  const p = state.cars[1].profile;
+  assert.equal(p.name.length, 60);
+  assert.equal(p.year, null);
+  assert.equal(p.make, "");
+  assert.equal(p.plate, "");
+});
+
+test("switchCar sets the active car when it exists", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const first = store.load();
+  const firstId = first.cars[0].id;
+  store.addCar({ name: "Second" }); // now active is the second car
+  const state = store.switchCar(firstId);
+  assert.equal(store.lastError, null);
+  assert.equal(state.activeCarId, firstId);
+});
+
+test("switchCar with an unknown id is a no-op and sets lastError", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const first = store.load();
+  const active = first.activeCarId;
+  const state = store.switchCar("does-not-exist");
+  assert.ok(store.lastError);
+  assert.equal(state.activeCarId, active);
+});
+
+test("updateCarProfile shallow-merges sanitised fields", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const first = store.load();
+  const id = first.cars[0].id;
+  store.updateCarProfile(id, { make: "Honda", model: "Civic" });
+  const state = store.updateCarProfile(id, { model: "Accord", year: 2020 });
+  const p = state.cars[0].profile;
+  assert.equal(p.make, "Honda"); // preserved from first patch
+  assert.equal(p.model, "Accord"); // overwritten
+  assert.equal(p.year, 2020);
+});
+
+test("deleteCar refuses to delete the last remaining car (lastError, no write)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const first = store.load();
+  const before = JSON.stringify(store.getState());
+  const state = store.deleteCar(first.cars[0].id);
+  assert.ok(store.lastError);
+  assert.equal(state.cars.length, 1);
+  assert.equal(JSON.stringify(store.getState()), before);
+});
+
+test("deleting the active car reassigns active to the new cars[0]", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const first = store.load();
+  const firstId = first.cars[0].id;
+  const afterAdd = store.addCar({ name: "Second" }); // second is now active
+  const secondId = afterAdd.cars[1].id;
+  const state = store.deleteCar(secondId); // delete the active one
+  assert.equal(store.lastError, null);
+  assert.equal(state.cars.length, 1);
+  assert.equal(state.cars[0].id, firstId);
+  assert.equal(state.activeCarId, firstId);
+});
+
+test("undoLast restores a deleted car and the active pointer", () => {
+  const store = createStore(makeStorage(), makeClock());
+  const first = store.load();
+  const firstId = first.cars[0].id;
+  const afterAdd = store.addCar({ name: "Second" });
+  const secondId = afterAdd.cars[1].id; // active
+  store.deleteCar(secondId);
+  assert.equal(store.getState().cars.length, 1);
+
+  const restored = store.undoLast();
+  assert.equal(restored.cars.length, 2);
+  assert.ok(restored.cars.some((c) => c.id === secondId));
+  assert.equal(restored.activeCarId, secondId); // active pointer restored too
+  assert.ok(restored.cars.some((c) => c.id === firstId));
+
+  // Second undo is a no-op (one level only).
+  const again = store.undoLast();
+  assert.equal(again.cars.length, 2);
+});
+
+test("undoRestore remains an alias for undoLast (app.js caller)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const afterAdd = store.addCar({ name: "Second" });
+  const secondId = afterAdd.cars[1].id;
+  store.deleteCar(secondId);
+  const restored = store.undoRestore();
+  assert.equal(restored.cars.length, 2);
 });
 
 test("load migrates a stored v1 blob up to CURRENT_VERSION", () => {

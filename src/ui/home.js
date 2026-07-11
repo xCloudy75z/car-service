@@ -32,10 +32,10 @@ function backupNudge(onNudge) {
   ]);
 }
 
-// handlers: { onGear(), onEdit(id), onDelete(id), needsBackup?, onNudge?() }
+// handlers: { onGear(), onSwitch?(), carCount?, onEdit(id), onDelete(id), needsBackup?, onNudge?() }
 export function renderHome(car, currency, handlers) {
   const frag = document.createDocumentFragment();
-  frag.appendChild(carHeader(car, currency, handlers.onGear));
+  frag.appendChild(carHeader(car, currency, handlers.onGear, handlers.onSwitch, handlers.carCount));
   if (handlers.needsBackup && typeof handlers.onNudge === "function") {
     const nudge = backupNudge();
     nudge.addEventListener("click", handlers.onNudge);

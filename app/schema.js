@@ -1,7 +1,25 @@
 // The single registry of job tags + default intervals + version + thresholds.
 // Every other module reads tags/intervals from here (no scattering).
 
-export const CURRENT_VERSION = 2;
+export const CURRENT_VERSION = 3;
+
+// Custom-job keys look like "cj_ab12cd34". The generator and the import regex
+// share this ONE constant so they can never diverge.
+export const CUSTOM_KEY_RE = /^cj_[a-z0-9]{4,}$/;
+
+// Caps for user-defined custom maintenance items.
+export const MAX_CUSTOM_JOBS = 50;
+export const MAX_CUSTOM_LABEL = 60;
+
+// PURE: derive a valid custom-job key from a random-ish seed string. No Date.now
+// or Math.random here — the caller (store.js) injects the entropy (crypto.randomUUID
+// or its fallback) as `seed`. We slugify the seed to lowercase [a-z0-9], prefix
+// "cj_", and pad to ensure ≥4 slug chars so the result always matches CUSTOM_KEY_RE.
+export function newCustomKey(seed) {
+  let slug = String(seed == null ? "" : seed).toLowerCase().replace(/[^a-z0-9]/g, "");
+  while (slug.length < 4) slug += "0";
+  return "cj_" + slug;
+}
 
 export const JOBS = {
   oil:          { label: "Engine oil",   icon: "🛢️", predicted: true },
