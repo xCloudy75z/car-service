@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Car Service History — Documentation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4efe7; --card:#fffdf9; --card2:#f2ece1; --ink:#1d1711; --muted:#73685a; --faint:#8a7f6e; --line:#e8dfd0;
+    --accent:#b45816; --accent2:#ce8439; --accent-soft:#f8ecd9; --glow:#e6bd84; --green:#35784c;
+    --shadow:0 20px 48px rgba(25,22,16,.14); --shadow-sm:0 2px 10px rgba(25,22,16,.07);
+    --fd:"Bricolage Grotesque",system-ui,sans-serif; --fb:"Inter",system-ui,sans-serif; --fm:"JetBrains Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:var(--fb);color:var(--ink);min-height:100vh;line-height:1.6;
+    background:radial-gradient(1100px 520px at 50% -10%,color-mix(in srgb,var(--glow) 55%,transparent),transparent),var(--bg)}
+  .top{position:sticky;top:0;z-index:5;backdrop-filter:blur(10px);background:color-mix(in srgb,var(--bg) 84%,transparent);border-bottom:1px solid var(--line)}
+  .topin{max-width:1040px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 20px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .logo{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:grid;place-items:center;color:#fff;font-size:20px;box-shadow:var(--shadow-sm)}
+  h1.t{font-family:var(--fd);font-size:19px;margin:0;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:12px}
+  a.back{color:var(--accent);text-decoration:none;font-weight:700;font-size:13.5px}
+  .layout{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:230px 1fr;gap:30px;padding:24px 20px 90px}
+  nav{position:sticky;top:74px;align-self:start;font-size:13.3px;max-height:calc(100vh - 96px);overflow:auto}
+  nav a{display:block;color:var(--muted);text-decoration:none;padding:5px 10px;border-radius:8px;border-left:2px solid transparent}
+  nav a:hover{color:var(--ink);background:var(--card)}
+  nav a.on{color:var(--accent);border-left-color:var(--accent);font-weight:700;background:var(--accent-soft)}
+  main{min-width:0}
+  .hero{font-family:var(--fd);font-weight:800;font-size:clamp(30px,5vw,40px);letter-spacing:-.03em;margin:2px 0 4px;
+    background:linear-gradient(160deg,var(--ink),color-mix(in srgb,var(--ink) 55%,var(--accent)));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{color:var(--muted);font-size:16px;max-width:60ch}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:16px 0 8px}
+  .chip{font-size:12px;font-weight:700;padding:5px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+  .chip.g{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green);border-color:transparent}
+  section{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-sm);padding:22px 24px;margin:16px 0}
+  section h2{font-family:var(--fd);font-size:22px;margin:0 0 10px;letter-spacing:-.01em;scroll-margin-top:80px}
+  section h3{font-size:15px;margin:16px 0 6px}
+  p{margin:.5em 0}
+  ul{margin:.5em 0;padding-left:20px} li{margin:5px 0;font-size:14.6px}
+  code{background:var(--accent-soft);color:var(--accent);padding:1.5px 6px;border-radius:6px;font-family:var(--fm);font-size:12.6px}
+  pre{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;overflow:auto}
+  pre code{background:none;color:var(--ink);padding:0;font-size:12.4px;line-height:1.5}
+  table{border-collapse:collapse;width:100%;margin:10px 0;font-size:13.6px;display:block;overflow-x:auto}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left;vertical-align:top}
+  th{background:var(--card2);font-weight:700}
+  a.link{color:var(--accent);font-weight:600;text-decoration:none}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:760px){.layout{grid-template-columns:1fr}nav{display:none}.grid2{grid-template-columns:1fr}}
+  .note{background:var(--accent-soft);border-radius:10px;padding:10px 13px;font-size:13.5px;color:var(--ink)}
+  .foot{color:var(--faint);font-size:12.5px;text-align:center;margin-top:24px}
+</style>
+</head>
+<body>
+<div class="top"><div class="topin">
+  <div class="brand"><div class="logo">📖</div><div><h1 class="t">Documentation</h1><div class="sub"><a class="back" href="../index.html">‹ Project hub</a> · Car Service History</div></div></div>
+  <a class="back" href="https://github.com/xCloudy75z/car-service" target="_blank" rel="noopener">GitHub ↗</a>
+</div></div>
+
+<div class="layout">
+  <nav id="toc">
+    <a href="#overview">Overview</a>
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#data">Data model</a>
+    <a href="#arch">Architecture</a>
+    <a href="#security">Security &amp; privacy</a>
+    <a href="#a11y">Accessibility</a>
+    <a href="#build">Build &amp; deploy</a>
+    <a href="#test">Testing</a>
+    <a href="#process">How it was built</a>
+    <a href="#changelog">Changelog</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#links">All links</a>
+  </nav>
+
+  <main>
+    <div class="hero">Car Service History</div>
+    <p class="lede">An offline-first, installable web app that keeps your car's complete service history on your own device and predicts what maintenance is coming up. No login, no server, no framework.</p>
+    <div class="chips">
+      <span class="chip g">v1 + v1.1 shipped</span><span class="chip g">145 tests</span><span class="chip g">CI passing</span>
+      <span class="chip">Vanilla JS</span><span class="chip">Offline-first</span><span class="chip">Installable PWA</span><span class="chip">WCAG-AA</span>
+    </div>
+
+    <section id="overview">
+      <h2>Overview</h2>
+      <p>Car Service History is the single, private source of truth for your car's maintenance: what was done, when, at what mileage, for how much, where — and what's due next. It installs to your phone's home screen, works fully offline, and updates itself in place.</p>
+      <p><b>Live app:</b> <a class="link" href="https://xcloudy75z.github.io/car-service/app/" target="_blank" rel="noopener">xcloudy75z.github.io/car-service/app/</a> &nbsp;·&nbsp; <b>Repo:</b> <a class="link" href="https://github.com/xCloudy75z/car-service" target="_blank" rel="noopener">xCloudy75z/car-service</a></p>
+    </section>
+
+    <section id="features">
+      <h2>Features</h2>
+      <div class="grid2">
+        <div>
+          <h3>Log & review</h3>
+          <ul>
+            <li>Add a service: date, odometer (optional), workshop, cost, multiple jobs per visit, notes.</li>
+            <li>Timeline with search + job filters; tap a card for notes; edit/delete with undo.</li>
+            <li>Insights: total &amp; yearly spend, service count, cost-by-job breakdown.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Predict</h3>
+          <ul>
+            <li>Per-car "next due" with progress bars + soft time reminders.</li>
+            <li>Used-car <b>anchors</b>: "last done at ~X km" so a pre-owned car predicts from day one.</li>
+            <li>Editable intervals: set distances, turn predictions on/off, reset to defaults.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Your garage</h3>
+          <ul>
+            <li>Multiple vehicles — each with its own history, intervals, custom items, anchors.</li>
+            <li>Switch from the header; add/edit/delete in Settings (with undo; last car protected).</li>
+            <li><b>Custom maintenance items</b> — your own named jobs with an emoji + optional interval.</li>
+          </ul>
+        </div>
+        <div>
+          <h3>Safe & private</h3>
+          <ul>
+            <li>All data stays in your browser; nothing leaves the device.</li>
+            <li>One-tap <b>Backup</b> to a file; safe <b>Restore</b> (rejects foreign/hostile files; snapshot + undo).</li>
+            <li>Installable + offline; in-app "Check for updates" + a version/build stamp.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <p>Everything is a single JSON object saved under one <code>localStorage</code> key. When you add a service, the app recomputes predictions and stats on the fly and re-renders — no server round-trip, instant, offline.</p>
+      <p><b>Prediction rule:</b> a job is "predicted" for a car precisely when a <i>distance</i> exists for it in that car's intervals. So turning a prediction on or off is just adding or removing a distance, and everything (built-in jobs and your custom ones) works the same way. "Next due" = the mileage of the last time that job was done (or your anchor) plus its interval, compared to your current mileage (the highest odometer you've entered).</p>
+    </section>
+
+    <section id="data">
+      <h2>Data model (v3)</h2>
+      <p>One key <code>car-service:data</code> holds a versioned, car-nested object:</p>
+<pre><code>{
+  version: 3,
+  activeCarId,
+  cars: [{
+    id, profile:{name,make,model,year,plate},
+    entries:[{ id, date, odometer|null, workshop, cost, tags[], notes,
+               createdAt, updatedAt, deletedAt }],
+    intervals:{ oil:{km:10000}, brake_fluid:{km:40000, timeHintMonths:24} },
+    customJobs:{ "cj_ab12cd34":{ label:"Coolant flush", icon:"❄️" } },
+    baselines:{ brake_fluid:{ odometer:35000, date:"2024-05-01" } }
+  }],
+  settings:{ theme, currencyLabel, lastBackupAt }
+}</code></pre>
+      <ul>
+        <li><b>Car-nested</b> — each car owns its data; <code>activeCarId</code> selects one.</li>
+        <li><b>Predicted = key in <code>intervals</code></b>; the built-in "predicted" flag is only a seed for new cars.</li>
+        <li><b>Custom keys</b> match <code>^cj_[a-z0-9]{4,}$</code> (backup-safe — not a raw UUID).</li>
+        <li><b>Migrations</b> run on load (a versioned, idempotent, guarded chain).</li>
+        <li><b>Soft delete</b> + per-record timestamps — future-proof for sync.</li>
+      </ul>
+    </section>
+
+    <section id="arch">
+      <h2>Architecture</h2>
+      <p>Pure, testable logic is separated from DOM and persistence:</p>
+<pre><code>schema → format/validate/migrate/calc/select  (PURE, unit-tested, no DOM/clock/random)
+       → store  (localStorage + all mutations + IDs + undo + backup)
+       → ui/*   (DOM builders, accessible dialog/toast — textContent only)
+       → app.js (controller: tabs, sheets, Garage, intervals editor, backup, updates)</code></pre>
+      <p>A "purity lint" (<code>scripts/lint-pure.js</code>) fails the build if a pure module uses <code>Date.now()</code>/<code>Math.random()</code> or any source file uses <code>innerHTML</code> — so the risky logic stays deterministic and injection-proof. Full detail in <a class="link" href="https://github.com/xCloudy75z/car-service/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">docs/ARCHITECTURE.md</a>.</p>
+    </section>
+
+    <section id="security">
+      <h2>Security &amp; privacy</h2>
+      <ul>
+        <li><b>Nothing leaves your device</b> — enforced by a strict Content-Security-Policy with <code>connect-src 'none'</code> (no network calls possible) and zero off-origin resources (fonts are self-hosted).</li>
+        <li>All user text is rendered as plain text (<code>textContent</code>), never as HTML — no injection.</li>
+        <li><b>Import is treated as hostile:</b> a backup file is parsed with a prototype-pollution-proof reviver, checked for the app marker + version, then rebuilt field-by-field against an allow-list; your live data is snapshotted before anything is replaced, with an undo. A bad file can't run code or wipe your history.</li>
+        <li>A backup file contains your car details/notes — it's the one thing that can leave the device, so keep it private.</li>
+      </ul>
+    </section>
+
+    <section id="a11y">
+      <h2>Accessibility</h2>
+      <p>Built in from the start: WCAG-AA contrast, status shown as icon <b>and</b> words (never colour alone), a real tab pattern with arrow-key navigation, focus-trapped dialogs that restore focus on close, live-region toasts (errors don't auto-dismiss), <code>role="switch"</code> toggles, ≥44px tap targets, and reduced-motion support.</p>
+    </section>
+
+    <section id="build">
+      <h2>Build &amp; deploy</h2>
+      <p>No dependencies to install. From the repo root:</p>
+<pre><code>node --test "tests/**/*.test.js"   # run the 145 tests
+node scripts/lint-pure.js          # purity + safe-DOM lint
+node scripts/build.js              # assemble app/ (stamps version + build time)
+node scripts/serve.js              # serve app/ at http://localhost:5173</code></pre>
+      <p>The build copies <code>src/</code> into <code>app/</code>, hashes every file to a version it stamps into the service worker (cache name) and the Settings "Version" line, and copies the icons. <code>app/</code> is committed; GitHub Pages serves it at <code>…/car-service/app/</code>. A CI workflow runs tests + lint + build on every push.</p>
+      <p class="note">Because the version hashes every file, even a CSS-only change bumps it — so the installed app actually updates when you tap "Check for updates".</p>
+    </section>
+
+    <section id="test">
+      <h2>Testing</h2>
+      <p><b>145 automated tests</b> (Node's built-in runner) cover predictions/stats, input + hostile-import validation (incl. a lossless export→import roundtrip with custom jobs and anchors), schema migrations, and every store operation. UI is verified in a real browser before each deploy. The purity lint guards determinism and safe DOM.</p>
+    </section>
+
+    <section id="process">
+      <h2>How it was built</h2>
+      <p>Every feature followed the same disciplined path:</p>
+      <ul>
+        <li><b>Brainstorm</b> → a written <b>spec</b>.</li>
+        <li><b>Break the spec</b> — independent agents adversarially try to break it; fixes folded in. (This caught a backup <i>data-loss</i> bug and several crashes before any code.)</li>
+        <li><b>Plan</b> → and break the plan too.</li>
+        <li><b>Build in small slices</b>, each written test-first, verified running in a real browser, then deployed before the next.</li>
+      </ul>
+      <p>See it on the hub: <a class="link" href="review.html">Adversarial Review</a> · <a class="link" href="progress.html">Build Progress</a> · <a class="link" href="spec.html">Design Spec</a> · <a class="link" href="mockup.html">Interactive Mockup</a>.</p>
+    </section>
+
+    <section id="changelog">
+      <h2>Changelog</h2>
+      <h3>v1.1 — "Garage" (multi-vehicle + customization)</h3>
+      <ul>
+        <li><b>6a</b> multiple vehicles (add/switch/edit/delete + undo, v3 migration).</li>
+        <li><b>6b</b> editable per-car intervals (distances, on/off toggles, reset).</li>
+        <li><b>6c</b> custom maintenance items (emoji-palette editor, backup-safe roundtrip).</li>
+      </ul>
+      <h3>v1 — initial release</h3>
+      <ul>
+        <li><b>Slice 1</b> core (log + predict + installable offline PWA).</li>
+        <li><b>Slice 2</b> Maintenance tab (rows, anchors, time captions).</li>
+        <li><b>Slice 3</b> search + filters + Insights.</li>
+        <li><b>Slice 4</b> safe backup &amp; restore.</li>
+        <li><b>Slice 5</b> a11y + security hardening, self-hosted fonts, CI gate.</li>
+      </ul>
+      <p>Full detail: <a class="link" href="https://github.com/xCloudy75z/car-service/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">docs/CHANGELOG.md</a>.</p>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap (architecture-ready, not built)</h2>
+      <ul>
+        <li>Per-item <b>time-based rules</b> (editing "every N months").</li>
+        <li>Reorder cars; <b>receipt photos</b> (needs IndexedDB); <b>PDF / CSV export</b>.</li>
+        <li><b>Cross-device sync</b> (records already carry timestamps + tombstones).</li>
+        <li>VIN decode, fuel/tire/warranty/registration tracking, AI insights.</li>
+      </ul>
+    </section>
+
+    <section id="links">
+      <h2>All links</h2>
+      <ul>
+        <li><b>App:</b> <a class="link" href="https://xcloudy75z.github.io/car-service/app/" target="_blank" rel="noopener">/car-service/app/</a></li>
+        <li><b>Hub:</b> <a class="link" href="../index.html">/car-service/</a> — Mockup · Spec · Review · Progress · Docs</li>
+        <li><b>Repo docs:</b> <a class="link" href="https://github.com/xCloudy75z/car-service/blob/main/README.md" target="_blank" rel="noopener">README</a> · <a class="link" href="https://github.com/xCloudy75z/car-service/blob/main/docs/ARCHITECTURE.md" target="_blank" rel="noopener">Architecture</a> · <a class="link" href="https://github.com/xCloudy75z/car-service/blob/main/docs/CHANGELOG.md" target="_blank" rel="noopener">Changelog</a> · <a class="link" href="https://github.com/xCloudy75z/car-service/blob/main/docs/PROJECT-STATUS.md" target="_blank" rel="noopener">Status</a> · <a class="link" href="https://github.com/xCloudy75z/car-service/blob/main/docs/HANDOVER.md" target="_blank" rel="noopener">Handover</a></li>
+        <li><b>Specs &amp; plans:</b> <a class="link" href="https://github.com/xCloudy75z/car-service/tree/main/docs/superpowers" target="_blank" rel="noopener">docs/superpowers/</a></li>
+      </ul>
+    </section>
+
+    <p class="foot">Car Service History · offline-first · your data stays on your device · built &amp; documented on Opus 4.8</p>
+  </main>
+</div>
+
+<script>
+  const links=[...document.querySelectorAll('#toc a')];
+  const secs=links.map(a=>document.getElementById(a.getAttribute('href').slice(1))).filter(Boolean);
+  const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){const i=secs.indexOf(e.target);links.forEach(l=>l.classList.remove('on'));if(links[i])links[i].classList.add('on');}});},{rootMargin:'-72px 0px -70% 0px'});
+  secs.forEach(s=>io.observe(s));
+</script>
+</body>
+</html>
