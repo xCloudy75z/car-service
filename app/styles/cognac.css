@@ -476,6 +476,30 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .intv-warn[hidden] { display: none; }
 
+/* ---- Custom items: inline Edit/Delete on the card + the add/edit form ---- */
+.intv-head { flex-wrap: wrap; }
+.intv-label { flex: 1; min-width: 0; }
+.intv-actions { display: flex; gap: 8px; flex: 0 0 auto; margin-left: auto; }
+.intv-actions .mini { padding: 9px 12px; }
+
+/* Caption above the emoji palette (mirrors the sheet's <label> styling). */
+.cj-cap { display: block; font-size: 12px; font-weight: 700; color: var(--muted); margin: 14px 2px 6px; }
+
+/* Tap-to-pick emoji palette: ≥44px glyph buttons; selected = accent ring. */
+.emoji-palette { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 4px; }
+.emoji-pick {
+  width: 46px; height: 46px; min-width: 44px; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 22px; line-height: 1; cursor: pointer;
+  background: var(--card); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 12px; font-family: inherit;
+}
+.emoji-pick:hover { border-color: color-mix(in srgb, var(--accent) 30%, var(--line)); }
+.emoji-pick[aria-pressed="true"] {
+  border-color: var(--accent); background: var(--accent-soft);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 /* Gentle "not backed up yet" reminder on the History view. */
 .nudge {
   display: flex; align-items: center; gap: 10px; width: 100%;

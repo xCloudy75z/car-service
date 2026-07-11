@@ -2,7 +2,7 @@
 // temp-key-then-swap writes, and quota handling. Storage backend is injectable for
 // testing; defaults to window.localStorage in the browser.
 
-import { CURRENT_VERSION, DEFAULT_INTERVALS } from "./schema.js";
+import { CURRENT_VERSION, DEFAULT_INTERVALS, MAX_CUSTOM_JOBS, MAX_CUSTOM_LABEL, newCustomKey } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { getActiveCar, allJobs } from "./select.js";
 import { predictedKeys } from "./calc.js";
@@ -24,6 +24,20 @@ function defaultNow() {
 }
 
 const cloneIntervals = () => JSON.parse(JSON.stringify(DEFAULT_INTERVALS));
+
+// Custom-job label: trim + require + cap. Returns "" when unusable.
+function cleanCustomLabel(label) {
+  return typeof label === "string" ? label.trim().slice(0, MAX_CUSTOM_LABEL) : "";
+}
+
+// First grapheme of an icon string via Intl.Segmenter (keeps ZWJ/family emoji as
+// one unit, unlike [...s][0]); empty/invalid → default wrench.
+function cleanCustomIcon(icon) {
+  const s = typeof icon === "string" ? icon.trim() : "";
+  if (!s) return "🔧";
+  const first = [...new Intl.Segmenter().segment(s)][0]?.segment;
+  return first || "🔧";
+}
 
 // Profile sanitising: string fields trimmed to a sane cap; `year` coerced to a
 // plausible integer or null. Returns ONLY the provided keys (a patch), so it
@@ -272,6 +286,86 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     return persist(replaceActiveCar(s, (c) => ({ ...c, intervals: cloneIntervals() })));
   }
 
+  // ---- Custom jobs (active car) --------------------------------------------
+
+  // Add a user-defined maintenance item to the active car. Returns { state, key }
+  // (NOTE: unlike the other store methods, this returns an object, not bare state)
+  // — `key` is null on failure. Sanitises label (trim/require/cap) + icon (one
+  // grapheme or 🔧). Rejects when the car already has MAX_CUSTOM_JOBS. When `km`
+  // is a finite number > 0, also sets the predicted interval — one persist.
+  function addCustomJob(label, icon, km) {
+    const s = ensureLoaded();
+    const cleanLabel = cleanCustomLabel(label);
+    if (!cleanLabel) {
+      lastError = new Error("addCustomJob: label is required");
+      return { state: s, key: null };
+    }
+    const car = getActiveCar(s);
+    const existing = (car && car.customJobs) || {};
+    if (Object.keys(existing).length >= MAX_CUSTOM_JOBS) {
+      lastError = new Error(`addCustomJob: cannot exceed ${MAX_CUSTOM_JOBS} custom jobs`);
+      return { state: s, key: null };
+    }
+    const cleanIcon = cleanCustomIcon(icon);
+    const key = newCustomKey(createId());
+    const hasKm = typeof km === "number" && Number.isFinite(km) && km > 0;
+    const next = replaceActiveCar(s, (c) => ({
+      ...c,
+      customJobs: { ...(c.customJobs || {}), [key]: { label: cleanLabel, icon: cleanIcon } },
+      ...(hasKm ? { intervals: { ...(c.intervals || {}), [key]: { km } } } : {})
+    }));
+    persist(next);
+    return { state: next, key };
+  }
+
+  // Merge sanitised label/icon into an existing custom job (no-op + lastError if
+  // the key is absent). Only provided fields are touched; an empty label is ignored.
+  function updateCustomJob(key, patch) {
+    const s = ensureLoaded();
+    const car = getActiveCar(s);
+    const existing = (car && car.customJobs) || {};
+    if (!existing[key]) {
+      lastError = new Error(`updateCustomJob: no custom job "${key}"`);
+      return s;
+    }
+    const p = patch && typeof patch === "object" ? patch : {};
+    const merged = { ...existing[key] };
+    if ("label" in p) {
+      const cleanLabel = cleanCustomLabel(p.label);
+      if (cleanLabel) merged.label = cleanLabel;
+    }
+    if ("icon" in p) merged.icon = cleanCustomIcon(p.icon);
+    return persist(
+      replaceActiveCar(s, (c) => ({
+        ...c,
+        customJobs: { ...(c.customJobs || {}), [key]: merged }
+      }))
+    );
+  }
+
+  // Delete a custom job from the active car in ONE atomic write: takes the shared
+  // undo snapshot (so undoLast() reverts the whole thing), removes it from
+  // customJobs + intervals, and strips its key from every entry's tags. An entry
+  // left with [] tags is fine.
+  function deleteCustomJob(key) {
+    const s = ensureLoaded();
+    snapshot = s; // shared one-level undo
+    return persist(
+      replaceActiveCar(s, (c) => {
+        const customJobs = { ...(c.customJobs || {}) };
+        delete customJobs[key];
+        const intervals = { ...(c.intervals || {}) };
+        delete intervals[key];
+        const entries = c.entries.map((e) =>
+          Array.isArray(e.tags) && e.tags.includes(key)
+            ? { ...e, tags: e.tags.filter((t) => t !== key) }
+            : e
+        );
+        return { ...c, customJobs, intervals, entries };
+      })
+    );
+  }
+
   // ---- Backup & restore (transactional) ------------------------------------
 
   // Record the current time as the last backup, then hand back a portable
@@ -456,6 +550,9 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     setInterval,
     removeInterval,
     resetIntervals,
+    addCustomJob,
+    updateCustomJob,
+    deleteCustomJob,
     addCar,
     switchCar,
     updateCarProfile,

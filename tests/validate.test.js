@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { escapeHtml, fmtKm, fmtMoney, fmtDate } from "../src/format.js";
 import { validateEntry, coerceNumber, isYMD, validateImportEnvelope, safeJsonParse } from "../src/validate.js";
-import { CURRENT_VERSION } from "../src/schema.js";
+import { CURRENT_VERSION, MAX_CUSTOM_JOBS, MAX_CUSTOM_LABEL } from "../src/schema.js";
 
 // ---- format.js ----
 
@@ -168,4 +168,112 @@ test("safeJsonParse strips __proto__ so it cannot pollute", () => {
 
 test("safeJsonParse throws on invalid JSON (caller shows an error toast)", () => {
   assert.throws(() => safeJsonParse("{not json"));
+});
+
+// ---- Custom jobs import validation (Slice 6c, §7) --------------------------
+
+const customEnvelope = () => ({
+  app: "car-service",
+  schemaVersion: CURRENT_VERSION,
+  exportedAt: "2026-07-11T00:00:00.000Z",
+  data: {
+    version: CURRENT_VERSION,
+    activeCarId: "car-x",
+    cars: [
+      {
+        id: "car-x",
+        profile: { name: "Daily", make: "Toyota", model: "Corolla", year: 2019, plate: "A-1" },
+        entries: [
+          { id: "e1", date: "2026-01-01", odometer: 50000, workshop: "Speedy", cost: 120,
+            tags: ["oil", "cj_ab12cd34"], notes: "ok", createdAt: "t0", updatedAt: "t0", deletedAt: null }
+        ],
+        intervals: { oil: { km: 10000 }, cj_ab12cd34: { km: 30000 } },
+        customJobs: { cj_ab12cd34: { label: "Coolant flush", icon: "❄️" } },
+        baselines: { cj_ab12cd34: { odometer: 40000 } }
+      }
+    ],
+    settings: { theme: "light", currencyLabel: "AED" }
+  }
+});
+
+test("import: a custom job + its interval + entry tag + baseline all survive (roundtrip lossless)", () => {
+  const r = validateImportEnvelope(customEnvelope());
+  assert.equal(r.ok, true);
+  const car = r.data.cars[0];
+  assert.deepEqual(car.customJobs.cj_ab12cd34, { label: "Coolant flush", icon: "❄️" });
+  assert.deepEqual(car.intervals.cj_ab12cd34, { km: 30000 });
+  assert.ok(car.entries[0].tags.includes("cj_ab12cd34"));
+  assert.deepEqual(car.baselines.cj_ab12cd34, { odometer: 40000 });
+});
+
+test("import: a cj_ interval/tag/baseline with no matching customJob is dropped", () => {
+  const env = customEnvelope();
+  env.data.cars[0].intervals.cj_zzzz = { km: 5000 };
+  env.data.cars[0].entries[0].tags.push("cj_zzzz");
+  env.data.cars[0].baselines.cj_zzzz = { odometer: 1000 };
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  const car = r.data.cars[0];
+  assert.equal(car.intervals.cj_zzzz, undefined);
+  assert.equal(car.baselines.cj_zzzz, undefined);
+  assert.equal(car.entries[0].tags.includes("cj_zzzz"), false);
+  // the legitimate custom key still survives
+  assert.ok(car.customJobs.cj_ab12cd34);
+});
+
+test("import: a cross-car custom tag is dropped (no shared registry across cars)", () => {
+  const env = customEnvelope();
+  // second car has its OWN custom job; car-x must not gain access to it
+  env.data.cars.push({
+    id: "car-y",
+    profile: { name: "Other", make: "", model: "", year: null, plate: "" },
+    entries: [],
+    intervals: {},
+    customJobs: { cj_other99: { label: "Diff swap", icon: "⚙️" } },
+    baselines: {}
+  });
+  env.data.cars[0].entries[0].tags.push("cj_other99");
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  assert.equal(r.data.cars[0].entries[0].tags.includes("cj_other99"), false);
+  assert.ok(r.data.cars[1].customJobs.cj_other99);
+});
+
+test("import: customJobs over MAX_CUSTOM_JOBS are capped", () => {
+  const env = customEnvelope();
+  const jobs = {};
+  for (let i = 0; i < MAX_CUSTOM_JOBS + 10; i++) jobs["cj_job" + i] = { label: "Job " + i, icon: "🔧" };
+  env.data.cars[0].customJobs = jobs;
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  assert.equal(Object.keys(r.data.cars[0].customJobs).length, MAX_CUSTOM_JOBS);
+});
+
+test("import: a cj_ key with uppercase or a hyphen is rejected from customJobs", () => {
+  const env = customEnvelope();
+  env.data.cars[0].customJobs = {
+    cj_ABCD: { label: "Bad case", icon: "🔧" },
+    "cj_ab-cd": { label: "Bad hyphen", icon: "🔧" },
+    cj_good12: { label: "Good", icon: "🔧" }
+  };
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  const keys = Object.keys(r.data.cars[0].customJobs);
+  assert.deepEqual(keys, ["cj_good12"]);
+});
+
+test("import: an over-long custom-job label is capped to MAX_CUSTOM_LABEL", () => {
+  const env = customEnvelope();
+  env.data.cars[0].customJobs = { cj_long01: { label: "x".repeat(200), icon: "🔧" } };
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  assert.equal(r.data.cars[0].customJobs.cj_long01.label.length, MAX_CUSTOM_LABEL);
+});
+
+test("import: a custom job with an over-long multi-emoji icon is reduced to one grapheme", () => {
+  const env = customEnvelope();
+  env.data.cars[0].customJobs = { cj_icon01: { label: "Coolant", icon: "🔧🛢🚗" } };
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  assert.equal(r.data.cars[0].customJobs.cj_icon01.icon, "🔧");
 });

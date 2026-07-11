@@ -3,8 +3,8 @@
 // Add/Edit and Settings dialogs.
 
 import { createStore } from "./store.js";
-import { getActiveCar, activeEntries, allJobs } from "./select.js";
-import { JOBS, DEFAULT_INTERVALS } from "./schema.js";
+import { getActiveCar, activeEntries, allJobs, jobMeta } from "./select.js";
+import { DEFAULT_INTERVALS, MAX_CUSTOM_LABEL } from "./schema.js";
 import { validateEntry, coerceNumber, safeJsonParse } from "./validate.js";
 import { currentKm } from "./calc.js";
 import { fmtKm } from "./format.js";
@@ -186,13 +186,17 @@ function openAdd(id) {
       dateEl.addEventListener("change", refreshWarn);
 
       const jobpick = el("div", { class: "jobpick" });
-      for (const t of Object.keys(JOBS)) {
+      // Built-ins AND this car's custom jobs, resolved through the per-car registry so
+      // a cj_* item is loggable and an edited entry that carries one shows it pressed.
+      const jobs = allJobs(car);
+      for (const t of Object.keys(jobs)) {
+        const meta = jobMeta(car, t);
         const chip = el("button", {
           class: "jp",
           attrs: { type: "button", "aria-pressed": picked.has(t) ? "true" : "false", "data-t": t }
         }, [
-          el("span", { attrs: { "aria-hidden": "true" }, text: JOBS[t].icon + " " }),
-          document.createTextNode(JOBS[t].label)
+          el("span", { attrs: { "aria-hidden": "true" }, text: meta.icon + " " }),
+          document.createTextNode(meta.label)
         ]);
         chip.addEventListener("click", () => {
           if (picked.has(t)) picked.delete(t);
@@ -264,7 +268,8 @@ function openAdd(id) {
 function openAnchor(tag) {
   const car = getActiveCar(store.getState());
   const existing = (car.baselines && car.baselines[tag]) || null;
-  const job = JOBS[tag] || { label: tag };
+  // Resolve through the per-car registry so a custom job shows its name, not "cj_…".
+  const job = jobMeta(car, tag);
 
   openSheet({
     title: "Last done — " + job.label,
@@ -773,10 +778,19 @@ function intervalCard(car, key, meta, body, ctl) {
     }
   });
 
-  const head = el("div", { class: "intv-head" }, [
+  const headKids = [
     el("span", { class: "intv-ico", attrs: { "aria-hidden": "true" }, text: meta.icon }),
     el("span", { class: "intv-label", text: meta.label })
-  ]);
+  ];
+  // Custom items get inline Edit + Delete (built-ins can only toggle/edit distance).
+  if (!meta.builtin) {
+    const editBtn = el("button", { class: "mini", attrs: { type: "button" }, text: "Edit" });
+    editBtn.addEventListener("click", () => renderCustomForm(body, ctl, key));
+    const delBtn = el("button", { class: "mini del", attrs: { type: "button" }, text: "Delete" });
+    delBtn.addEventListener("click", () => renderDeleteCustomConfirm(body, ctl, key));
+    headKids.push(el("div", { class: "intv-actions" }, [editBtn, delBtn]));
+  }
+  const head = el("div", { class: "intv-head" }, headKids);
   const ctlRow = el("div", { class: "intv-ctl" }, [kmWrap, toggle]);
 
   return el("div", { class: "intv-card" }, [head, ctlRow, hint]);
@@ -798,6 +812,12 @@ function renderIntervalsSection(body, ctl) {
   }
   group("Built-in", keys.filter((k) => jobs[k].builtin));
   group("Custom", keys.filter((k) => !jobs[k].builtin));
+
+  const addCustomBtn = el("button", {
+    class: "btn btn-lite", attrs: { type: "button", style: "margin-top:8px" }, text: "＋ Add custom item"
+  });
+  addCustomBtn.addEventListener("click", () => renderCustomForm(body, ctl));
+  wrap.appendChild(addCustomBtn);
 
   const resetBtn = el("button", {
     class: "btn btn-lite", attrs: { type: "button", style: "margin-top:12px" }, text: "Reset to defaults"
@@ -833,6 +853,165 @@ function renderResetIntervalsConfirm(body, ctl) {
     el("h2", { class: "slab", text: "Reset intervals" }),
     el("p", { attrs: { style: "margin:2px 2px 4px;font-weight:600" }, text: "Reset all distances to the defaults?" }),
     el("p", { class: "tiny muted", attrs: { style: "margin:0 2px 4px" }, text: "Your custom items are kept but stop predicting until you re-add a distance." }),
+    confirmBtn,
+    cancelBtn
+  );
+
+  cancelBtn.focus();
+}
+
+// ---- Custom maintenance items (active car) ---------------------------------
+
+// The tap-to-pick emoji palette. Kept small + maintenance-flavoured; the user
+// never free-types an emoji (which would risk multi-codepoint / invalid glyphs).
+const CUSTOM_ICONS = [
+  ["🔧", "wrench"], ["🛢️", "oil can"], ["🧰", "toolbox"], ["❄️", "snowflake"],
+  ["🔋", "battery"], ["🛞", "tyre"], ["⚙️", "gear"], ["🚗", "car"],
+  ["🅿️", "parking"], ["💨", "air"], ["⚡", "spark"], ["🛑", "stop"]
+];
+
+// Add / edit a custom item, rendered INLINE into the Settings body (like the
+// delete-car + reset confirms) so we can rebuild the garage/intervals list in
+// place. `editKey` omitted → add mode; present → edit label + icon only (the km
+// stays under the card's own distance field/toggle, per spec).
+function renderCustomForm(body, ctl, editKey) {
+  const car = getActiveCar(store.getState());
+  const jobs = allJobs(car);
+  const editing = editKey ? jobs[editKey] : null;
+
+  body.replaceChildren();
+
+  const labelEl = el("input", {
+    attrs: {
+      id: "f-cj-label", maxlength: String(MAX_CUSTOM_LABEL),
+      placeholder: "e.g. Coolant flush", value: editing ? editing.label : ""
+    }
+  });
+
+  let chosenIcon = editing ? editing.icon : "🔧";
+  const palette = el("div", { class: "emoji-palette", attrs: { role: "group", "aria-label": "Choose an icon" } });
+  const iconBtns = [];
+  for (const [emo, name] of CUSTOM_ICONS) {
+    const b = el("button", {
+      class: "emoji-pick",
+      attrs: { type: "button", "aria-label": "Icon: " + name, "aria-pressed": emo === chosenIcon ? "true" : "false" },
+      text: emo
+    });
+    b.addEventListener("click", () => {
+      chosenIcon = emo;
+      for (const x of iconBtns) x.setAttribute("aria-pressed", x === b ? "true" : "false");
+    });
+    iconBtns.push(b);
+    palette.appendChild(b);
+  }
+
+  const kmEl = editing ? null : el("input", {
+    attrs: { id: "f-cj-km", inputmode: "numeric", autocomplete: "off", placeholder: "e.g. 30000" }
+  });
+
+  const warn = el("div", { class: "warn", attrs: { role: "status", hidden: true } });
+  // Two-step soft gate: a colliding label warns once; a second Save adds anyway.
+  let warned = false;
+  labelEl.addEventListener("input", () => { warned = false; warn.hidden = true; });
+
+  const saveBtn = el("button", {
+    class: "btn btn-primary", attrs: { type: "button", style: "margin-top:16px" },
+    text: editing ? "Save changes" : "Add item"
+  });
+
+  function save() {
+    const label = labelEl.value.trim();
+    if (!label) { toast("Give this item a name.", { type: "error" }); return; }
+
+    const lower = label.toLowerCase();
+    const clashKey = Object.keys(jobs).find((k) => k !== editKey && jobs[k].label.toLowerCase() === lower);
+    if (clashKey && !warned) {
+      warn.replaceChildren(
+        el("span", { attrs: { "aria-hidden": "true" }, text: "⚠️ " }),
+        document.createTextNode(
+          `You already have a job called “${jobs[clashKey].label}” — use it, or rename this. Tap ${editing ? "Save changes" : "Add item"} again to add anyway.`
+        )
+      );
+      warn.hidden = false;
+      warned = true;
+      return;
+    }
+
+    if (editing) {
+      store.updateCustomJob(editKey, { label, icon: chosenIcon });
+      if (store.lastError) { toast("Couldn't save that item — please try again.", { type: "error" }); return; }
+      render();
+      renderSettingsBody(body, ctl);
+      toast("Item updated");
+    } else {
+      const kmNum = coerceNumber(kmEl.value);
+      const km = Number.isFinite(kmNum) && kmNum > 0 ? Math.round(kmNum) : undefined;
+      const { key } = store.addCustomJob(label, chosenIcon, km);
+      if (key === null || store.lastError) {
+        toast("Couldn't add that item — please try again.", { type: "error" });
+        return;
+      }
+      render();
+      renderSettingsBody(body, ctl);
+      toast("Custom item added");
+    }
+  }
+  saveBtn.addEventListener("click", save);
+
+  const cancelBtn = el("button", { class: "btn btn-lite", attrs: { type: "button", style: "margin-top:10px" }, text: "Cancel" });
+  cancelBtn.addEventListener("click", () => renderSettingsBody(body, ctl));
+
+  body.append(
+    ...[
+      el("h2", { class: "slab", text: editing ? "Edit custom item" : "Add custom item" }),
+      field("Name", labelEl, "required"),
+      el("span", { class: "cj-cap", text: "Icon" }),
+      palette,
+      editing ? null : field("Distance (km)", kmEl, "optional"),
+      warn,
+      saveBtn,
+      cancelBtn
+    ].filter(Boolean) // native append() stringifies null → "null"; drop the km slot in edit mode
+  );
+
+  labelEl.focus();
+}
+
+// Inline delete-confirm for a custom item — shows how many past services carry it
+// (those records stay, just lose this job) → delete + Undo toast.
+function renderDeleteCustomConfirm(body, ctl, key) {
+  const car = getActiveCar(store.getState());
+  const meta = jobMeta(car, key);
+  const count = activeEntries(car).filter((e) => Array.isArray(e.tags) && e.tags.includes(key)).length;
+  const svc = count === 1 ? "1 past service" : `${count} past services`;
+
+  body.replaceChildren();
+
+  const confirmBtn = el("button", { class: "btn btn-danger", attrs: { type: "button", style: "margin-top:16px" }, text: "Delete this item" });
+  confirmBtn.addEventListener("click", () => {
+    store.deleteCustomJob(key);
+    if (store.lastError) {
+      toast("Couldn't delete that item — please try again.", { type: "error" });
+      renderSettingsBody(body, ctl);
+      return;
+    }
+    render();
+    renderSettingsBody(body, ctl);
+    undoToast("Custom item deleted", () => {
+      store.undoLast();
+      render();
+      if (store.lastError) toast("Couldn't restore that item — please try again.", { type: "error" });
+      else if (body.isConnected) renderSettingsBody(body, ctl);
+    });
+  });
+
+  const cancelBtn = el("button", { class: "btn btn-lite", attrs: { type: "button", style: "margin-top:10px" }, text: "Keep this item" });
+  cancelBtn.addEventListener("click", () => renderSettingsBody(body, ctl));
+
+  body.append(
+    el("h2", { class: "slab", text: "Delete custom item" }),
+    el("p", { attrs: { style: "margin:2px 2px 4px;font-weight:600" }, text: `Delete “${meta.label}”?` }),
+    el("p", { class: "tiny muted", attrs: { style: "margin:0 2px 4px" }, text: `Removes “${meta.label}” from ${svc}. Those records stay but lose this job.` }),
     confirmBtn,
     cancelBtn
   );

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createStore } from "../src/store.js";
-import { CURRENT_VERSION, DEFAULT_INTERVALS } from "../src/schema.js";
+import { CURRENT_VERSION, DEFAULT_INTERVALS, CUSTOM_KEY_RE, MAX_CUSTOM_JOBS } from "../src/schema.js";
 
 // In-memory localStorage shim (Map-backed) so store runs under Node.
 function makeStorage() {
@@ -448,6 +448,135 @@ test("setBaseline rejects a key that has no interval (not predicted)", () => {
   const state = store.setBaseline("oil", { odometer: 20000 });
   assert.ok(store.lastError);
   assert.equal(state.cars[0].baselines.oil, undefined);
+});
+
+// ---- Custom jobs (Slice 6c) ----
+
+test("addCustomJob returns { state, key } with a key matching CUSTOM_KEY_RE and adds the job", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { state, key } = store.addCustomJob("Coolant flush", "❄️");
+  assert.equal(store.lastError, null);
+  assert.equal(typeof key, "string");
+  assert.equal(CUSTOM_KEY_RE.test(key), true);
+  assert.deepEqual(state.cars[0].customJobs[key], { label: "Coolant flush", icon: "❄️" });
+});
+
+test("addCustomJob with a valid km also sets the interval", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { state, key } = store.addCustomJob("Coolant flush", "❄️", 30000);
+  assert.deepEqual(state.cars[0].intervals[key], { km: 30000 });
+});
+
+test("addCustomJob with no/invalid km does NOT create an interval", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { state, key } = store.addCustomJob("Log only", "🔧");
+  assert.equal(state.cars[0].intervals[key], undefined);
+});
+
+test("addCustomJob with an empty label sets lastError and returns key null (no write)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const before = JSON.stringify(store.getState());
+  const { state, key } = store.addCustomJob("   ", "❄️");
+  assert.ok(store.lastError);
+  assert.equal(key, null);
+  assert.equal(JSON.stringify(state), before);
+});
+
+test("addCustomJob trims + caps the label to MAX_CUSTOM_LABEL", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { state, key } = store.addCustomJob("  " + "x".repeat(200) + "  ", "🔧");
+  assert.equal(state.cars[0].customJobs[key].label.length, 60);
+});
+
+test("addCustomJob stores a multi-emoji icon as a single grapheme", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { state, key } = store.addCustomJob("Coolant", "🔧🛢");
+  assert.equal(state.cars[0].customJobs[key].icon, "🔧");
+});
+
+test("addCustomJob defaults an empty/invalid icon to the wrench", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { state, key } = store.addCustomJob("Coolant", "");
+  assert.equal(state.cars[0].customJobs[key].icon, "🔧");
+});
+
+test("addCustomJob caps the active car at MAX_CUSTOM_JOBS", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  for (let i = 0; i < MAX_CUSTOM_JOBS; i++) {
+    const r = store.addCustomJob("Job " + i, "🔧");
+    assert.equal(store.lastError, null);
+    assert.ok(r.key);
+  }
+  assert.equal(Object.keys(store.getState().cars[0].customJobs).length, MAX_CUSTOM_JOBS);
+  const over = store.addCustomJob("One too many", "🔧");
+  assert.ok(store.lastError);
+  assert.equal(over.key, null);
+  assert.equal(Object.keys(store.getState().cars[0].customJobs).length, MAX_CUSTOM_JOBS);
+});
+
+test("updateCustomJob merges sanitised label + icon", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { key } = store.addCustomJob("Coolant flush", "❄️");
+  const state = store.updateCustomJob(key, { label: "Radiator flush" });
+  assert.equal(store.lastError, null);
+  assert.deepEqual(state.cars[0].customJobs[key], { label: "Radiator flush", icon: "❄️" });
+  const state2 = store.updateCustomJob(key, { icon: "🔥🚗" });
+  assert.equal(state2.cars[0].customJobs[key].icon, "🔥");
+});
+
+test("updateCustomJob on an unknown key is a no-op + lastError", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const before = JSON.stringify(store.getState());
+  const state = store.updateCustomJob("cj_nope", { label: "x" });
+  assert.ok(store.lastError);
+  assert.equal(JSON.stringify(state), before);
+});
+
+test("deleteCustomJob removes the job + interval + strips the tag from entries in one write; undoLast restores all", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { key } = store.addCustomJob("Coolant flush", "❄️", 30000);
+  store.addEntry({ date: "2026-01-01", odometer: 50000, tags: [key, "oil"] });
+
+  const state = store.deleteCustomJob(key);
+  assert.equal(state.cars[0].customJobs[key], undefined);
+  assert.equal(state.cars[0].intervals[key], undefined);
+  const entry = state.cars[0].entries[0];
+  assert.deepEqual(entry.tags, ["oil"]); // custom tag stripped, other tag preserved
+  assert.equal(entry.date, "2026-01-01"); // rest of the entry untouched
+
+  const restored = store.undoLast();
+  assert.deepEqual(restored.cars[0].customJobs[key], { label: "Coolant flush", icon: "❄️" });
+  assert.deepEqual(restored.cars[0].intervals[key], { km: 30000 });
+  assert.ok(restored.cars[0].entries[0].tags.includes(key));
+});
+
+test("deleteCustomJob leaves an entry with no remaining tags as an empty array", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { key } = store.addCustomJob("Coolant flush", "❄️");
+  store.addEntry({ date: "2026-01-01", odometer: 50000, tags: [key] });
+  const state = store.deleteCustomJob(key);
+  assert.deepEqual(state.cars[0].entries[0].tags, []);
+});
+
+test("setBaseline succeeds for a custom job that has an interval (anchorable)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const { key } = store.addCustomJob("Coolant flush", "❄️", 30000);
+  const state = store.setBaseline(key, { odometer: 40000 });
+  assert.equal(store.lastError, null);
+  assert.deepEqual(state.cars[0].baselines[key], { odometer: 40000 });
 });
 
 test("load migrates a stored v1 blob up to CURRENT_VERSION", () => {

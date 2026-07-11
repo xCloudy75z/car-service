@@ -1,6 +1,6 @@
 // Pure input + import validation. No Date.now()/Math.random().
 
-import { CURRENT_VERSION, JOBS } from "./schema.js";
+import { CURRENT_VERSION, JOBS, CUSTOM_KEY_RE, MAX_CUSTOM_JOBS, MAX_CUSTOM_LABEL } from "./schema.js";
 
 // Parse a user-typed number tolerating thousands separators / spaces.
 // Returns NaN when not parseable — callers validate the parsed number, not raw text.
@@ -97,13 +97,48 @@ const yearOrNull = (v) => {
 
 const isoOrNull = (v) => (typeof v === "string" && v ? v.slice(0, 40) : null);
 
-// Only keep known/normalized job tags; drop unknowns and duplicates.
-const cleanTags = (v) => {
+// ONE shared predicate for "is this a job key we recognise for THIS car" — a
+// built-in (in JOBS) or one of this car's cleaned custom keys (in validKeys).
+// When validKeys is omitted (defensive), fall back to built-ins only.
+const isKnownKey = (key, validKeys) =>
+  validKeys instanceof Set ? validKeys.has(key) : Object.prototype.hasOwnProperty.call(JOBS, key);
+
+// First grapheme of an icon string via Intl.Segmenter (keeps ZWJ/family emoji as
+// one unit); empty/invalid → default wrench. Deterministic — safe in this pure module.
+function firstIcon(icon) {
+  const s = typeof icon === "string" ? icon.trim() : "";
+  if (!s) return "🔧";
+  const first = [...new Intl.Segmenter().segment(s)][0]?.segment;
+  return first || "🔧";
+}
+
+// Rebuild a car's customJobs from the allow-list: keep only keys matching
+// CUSTOM_KEY_RE, with a 1..MAX_CUSTOM_LABEL label and a single-grapheme icon.
+// Cap the count at MAX_CUSTOM_JOBS (DoS guard on hostile files).
+function cleanCustomJobs(cj) {
+  const o = cj && typeof cj === "object" ? cj : {};
+  const out = {};
+  let count = 0;
+  for (const key of Object.keys(o)) {
+    if (count >= MAX_CUSTOM_JOBS) break;
+    if (!CUSTOM_KEY_RE.test(key)) continue;
+    const v = o[key];
+    if (!v || typeof v !== "object") continue;
+    const label = typeof v.label === "string" ? v.label.trim().slice(0, MAX_CUSTOM_LABEL) : "";
+    if (!label) continue;
+    out[key] = { label, icon: firstIcon(v.icon) };
+    count++;
+  }
+  return out;
+}
+
+// Only keep known/normalized job tags for this car; drop unknowns and duplicates.
+const cleanTags = (v, validKeys) => {
   if (!Array.isArray(v)) return [];
   const out = [];
   for (const t of v) {
     const k = normalizeTag(t);
-    if (JOBS[k] && !out.includes(k)) out.push(k);
+    if (isKnownKey(k, validKeys) && !out.includes(k)) out.push(k);
   }
   return out;
 };
@@ -120,7 +155,8 @@ function cleanProfile(p) {
 }
 
 // Rejects the whole file if any entry has an invalid service date (throws).
-function cleanEntry(e) {
+// `validKeys` scopes which tags survive (built-in ∪ this car's cleaned custom).
+function cleanEntry(e, validKeys) {
   const o = e && typeof e === "object" ? e : {};
   const date = typeof o.date === "string" ? o.date : "";
   if (!isYMD(date)) {
@@ -132,7 +168,7 @@ function cleanEntry(e) {
     odometer: o.odometer == null || o.odometer === "" ? null : numOr(o.odometer, null),
     workshop: capStr(o.workshop, 500),
     cost: numOr(o.cost, 0),
-    tags: cleanTags(o.tags),
+    tags: cleanTags(o.tags, validKeys),
     notes: capStr(o.notes, 2000),
     createdAt: isoOrNull(o.createdAt),
     updatedAt: isoOrNull(o.updatedAt),
@@ -140,10 +176,11 @@ function cleanEntry(e) {
   };
 }
 
-function cleanIntervals(iv) {
+function cleanIntervals(iv, validKeys) {
   const o = iv && typeof iv === "object" ? iv : {};
   const out = {};
-  for (const k of Object.keys(JOBS)) {
+  for (const k of Object.keys(o)) {
+    if (!isKnownKey(k, validKeys)) continue;
     const v = o[k];
     if (!v || typeof v !== "object") continue;
     const km = Number(v.km);
@@ -156,10 +193,11 @@ function cleanIntervals(iv) {
   return out;
 }
 
-function cleanBaselines(bl) {
+function cleanBaselines(bl, validKeys) {
   const o = bl && typeof bl === "object" ? bl : {};
   const out = {};
-  for (const k of Object.keys(JOBS)) {
+  for (const k of Object.keys(o)) {
+    if (!isKnownKey(k, validKeys)) continue;
     const v = o[k];
     if (!v || typeof v !== "object") continue;
     const od = Number(v.odometer);
@@ -183,12 +221,16 @@ function cleanSettings(s) {
 
 function cleanCar(c) {
   const o = c && typeof c === "object" ? c : {};
+  // Clean customJobs FIRST so we can scope every other key to this car's registry.
+  const customJobs = cleanCustomJobs(o.customJobs);
+  const validKeys = new Set([...Object.keys(JOBS), ...Object.keys(customJobs)]);
   return {
     id: typeof o.id === "string" ? o.id.slice(0, 100) : "",
     profile: cleanProfile(o.profile),
-    entries: Array.isArray(o.entries) ? o.entries.map(cleanEntry) : [],
-    intervals: cleanIntervals(o.intervals),
-    baselines: cleanBaselines(o.baselines)
+    entries: Array.isArray(o.entries) ? o.entries.map((e) => cleanEntry(e, validKeys)) : [],
+    intervals: cleanIntervals(o.intervals, validKeys),
+    customJobs,
+    baselines: cleanBaselines(o.baselines, validKeys)
   };
 }
 
