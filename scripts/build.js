@@ -28,8 +28,20 @@ fs.mkdirSync(APP, { recursive: true });
 if (fs.existsSync(ICONS)) for (const f of fs.readdirSync(ICONS)) cp(path.join(ICONS, f), path.join(APP, "icons", f));
 
 // 3. Stamp a content-hash version into the service worker's cache name.
-const hashInput = fs.readFileSync(path.join(APP, "index.html")) + fs.readFileSync(path.join(APP, "app.js"));
-const version = crypto.createHash("sha256").update(hashInput).digest("hex").slice(0, 10);
+//    Hash EVERY built asset (except the two files we stamp afterwards) so any change
+//    — HTML, JS, CSS, icons — bumps the version and the SW updates in place.
+const hash = crypto.createHash("sha256");
+(function walkHash(d) {
+  for (const f of fs.readdirSync(d).sort()) {
+    const fp = path.join(d, f);
+    if (fs.statSync(fp).isDirectory()) { walkHash(fp); continue; }
+    const rel = path.relative(APP, fp).replace(/\\/g, "/");
+    if (rel === "sw.js" || rel === "build-info.js") continue;
+    hash.update(rel);
+    hash.update(fs.readFileSync(fp));
+  }
+})(APP);
+const version = hash.digest("hex").slice(0, 10);
 const swPath = path.join(APP, "sw.js");
 fs.writeFileSync(swPath, fs.readFileSync(swPath, "utf8").replaceAll("__VERSION__", version));
 
