@@ -370,7 +370,22 @@ textarea { resize: vertical; min-height: 60px; }
   background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 30%, var(--line));
   border-radius: 14px; padding: 13px 14px; display: flex; align-items: center; gap: 11px; margin-bottom: 14px;
 }
-.backup .ic { font-size: 22px; }
+.backup .ic { font-size: 22px; align-self: flex-start; }
+.backup-status { font-weight: 600; margin-top: 2px; }
+
+/* Gentle "not backed up yet" reminder on the History view. */
+.nudge {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  margin: 12px 0 4px; padding: 11px 13px; border-radius: 13px;
+  background: var(--green-soft); border: 1px solid color-mix(in srgb, var(--green) 26%, var(--line));
+  color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+  transition: filter .15s;
+}
+.nudge:hover { filter: brightness(.98); }
+.nudge:active { filter: brightness(.95); }
+.nudge-ic { font-size: 18px; }
+.nudge-tx { flex: 1; font-size: 13px; font-weight: 600; }
+.nudge-go { font-size: 20px; color: var(--muted); line-height: 1; }
 
 /* ---- Toast ---- */
 .toast-host {

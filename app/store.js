@@ -5,6 +5,9 @@
 import { CURRENT_VERSION, DEFAULT_INTERVALS, JOBS } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { getActiveCar } from "./select.js";
+import { validateImportEnvelope } from "./validate.js";
+
+const deepClone = (x) => JSON.parse(JSON.stringify(x));
 
 const KEY = "car-service:data";
 const TMP_KEY = "car-service:data.tmp";
@@ -30,6 +33,7 @@ function replaceActiveCar(state, fn) {
 export function createStore(storage = defaultBackend(), now = defaultNow) {
   let state = null;
   let lastError = null;
+  let snapshot = null; // one-level pre-restore backup for undoRestore()
 
   const createId = () =>
     globalThis.crypto && typeof globalThis.crypto.randomUUID === "function"
@@ -193,6 +197,116 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     );
   }
 
+  // ---- Backup & restore (transactional) ------------------------------------
+
+  // Record the current time as the last backup, then hand back a portable
+  // envelope. The live state is updated so "Last backed up" reflects this.
+  function exportBackup() {
+    const s = ensureLoaded();
+    const at = now();
+    const next = { ...s, settings: { ...(s.settings || {}), lastBackupAt: at } };
+    persist(next);
+    return { app: "car-service", schemaVersion: CURRENT_VERSION, exportedAt: at, data: next };
+  }
+
+  function setLastBackupAt(iso) {
+    const s = ensureLoaded();
+    const at = typeof iso === "string" && iso ? iso : now();
+    return persist({ ...s, settings: { ...(s.settings || {}), lastBackupAt: at } });
+  }
+
+  // A well-formed state has ≥1 car, string car ids, entry arrays, and an
+  // activeCarId that points at a real car. Guards against a broken restore.
+  function isWellFormed(st) {
+    if (!st || typeof st !== "object" || !Array.isArray(st.cars) || st.cars.length === 0) return false;
+    for (const c of st.cars) {
+      if (!c || typeof c !== "object" || typeof c.id !== "string" || !c.id) return false;
+      if (!Array.isArray(c.entries)) return false;
+    }
+    if (typeof st.activeCarId !== "string" || !st.activeCarId) return false;
+    return st.cars.some((c) => c.id === st.activeCarId);
+  }
+
+  // Validate + migrate a CLONE (never touches stored data). Returns the migrated
+  // clean state or an error — used by both preview and commit.
+  function prepareImport(parsedObj) {
+    const res = validateImportEnvelope(parsedObj, CURRENT_VERSION);
+    if (!res.ok) return { ok: false, error: res.error };
+    let migrated;
+    try {
+      migrated = migrate(deepClone(res.data));
+    } catch (_) {
+      return { ok: false, error: "This backup couldn't be read." };
+    }
+    if (!migrated || !Array.isArray(migrated.cars) || migrated.cars.length === 0) {
+      return { ok: false, error: "This backup has no cars to restore." };
+    }
+    return { ok: true, data: migrated };
+  }
+
+  // Dry run: validate + count without any writes, so the UI can confirm.
+  function previewImport(parsedObj) {
+    const prep = prepareImport(parsedObj);
+    if (!prep.ok) return { ok: false, error: prep.error };
+    let entryCount = 0;
+    for (const c of prep.data.cars) {
+      for (const e of c.entries || []) if (!e.deletedAt) entryCount++;
+    }
+    return { ok: true, carCount: prep.data.cars.length, entryCount };
+  }
+
+  // Transactional restore: validate → migrate clone → regenerate every id →
+  // well-formed check → snapshot current → write. On ANY failure, stored data
+  // is left untouched.
+  function commitImport(parsedObj) {
+    const prep = prepareImport(parsedObj);
+    if (!prep.ok) return { ok: false, error: prep.error };
+
+    const ts = now();
+    const idMap = new Map();
+    const cars = prep.data.cars.map((c) => {
+      const newId = createId();
+      idMap.set(c.id, newId);
+      return {
+        ...c,
+        id: newId,
+        entries: (Array.isArray(c.entries) ? c.entries : []).map((e) => ({
+          ...e,
+          id: createId(),
+          updatedAt: ts
+        }))
+      };
+    });
+    const next = {
+      ...prep.data,
+      cars,
+      activeCarId: idMap.get(prep.data.activeCarId) || cars[0].id
+    };
+
+    if (!isWellFormed(next)) {
+      return { ok: false, error: "Restore failed a safety check — your data is unchanged." };
+    }
+
+    const prev = ensureLoaded();
+    persist(next);
+    if (lastError) {
+      // Write failed (e.g. quota). Roll the in-memory state back so live data is intact.
+      state = prev;
+      snapshot = null;
+      return { ok: false, error: "Couldn't save the restored data — your original data is unchanged." };
+    }
+    snapshot = prev; // enable one-level undo
+    return { ok: true, state: next };
+  }
+
+  // Bring back the pre-restore snapshot, one level. No-op if none.
+  function undoRestore() {
+    if (!snapshot) return ensureLoaded();
+    const restored = snapshot;
+    snapshot = null;
+    return persist(restored);
+  }
+
   return {
     load,
     addEntry,
@@ -200,6 +314,11 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     deleteEntry,
     setBaseline,
     clearBaseline,
+    exportBackup,
+    setLastBackupAt,
+    previewImport,
+    commitImport,
+    undoRestore,
     getState: () => ensureLoaded(),
     createId,
     get lastError() {

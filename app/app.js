@@ -5,7 +5,7 @@
 import { createStore } from "./store.js";
 import { getActiveCar, activeEntries } from "./select.js";
 import { JOBS } from "./schema.js";
-import { validateEntry, coerceNumber } from "./validate.js";
+import { validateEntry, coerceNumber, safeJsonParse } from "./validate.js";
 import { currentKm } from "./calc.js";
 import { el } from "./ui/render.js";
 import { renderHome } from "./ui/home.js";
@@ -77,8 +77,15 @@ function render() {
   fab.hidden = currentTab !== "history";
 
   if (currentTab === "history") {
+    const needsBackup = !(state.settings && state.settings.lastBackupAt) && activeEntries(car).length > 0;
     app.appendChild(
-      renderHome(car, currency(), { onGear: openSettings, onEdit: (id) => openAdd(id), onDelete })
+      renderHome(car, currency(), {
+        onGear: openSettings,
+        onEdit: (id) => openAdd(id),
+        onDelete,
+        needsBackup,
+        onNudge: openSettings
+      })
     );
   } else if (currentTab === "due") {
     app.appendChild(renderMaintenance(car, { onSetAnchor: openAnchor }));
@@ -318,7 +325,107 @@ function openAnchor(tag) {
   });
 }
 
-// ---- Settings sheet (read-only profile + backup stub) ----------------------
+// ---- Backup & restore ------------------------------------------------------
+
+// Human relative time for the "Last backed up" line. Clock lives in app.js.
+function backupStatus(iso) {
+  if (!iso) return "Never backed up yet";
+  const then = new Date(iso);
+  if (isNaN(then.getTime())) return "Never backed up yet";
+  const startOf = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOf(new Date()) - startOf(then)) / 86400000);
+  if (days <= 0) return "Last backed up: today";
+  if (days === 1) return "Last backed up: yesterday";
+  if (days < 30) return `Last backed up: ${days} days ago`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `Last backed up: ${months} month${months === 1 ? "" : "s"} ago`;
+  const years = Math.floor(days / 365);
+  return `Last backed up: ${years} year${years === 1 ? "" : "s"} ago`;
+}
+
+// Serialise the current state into a downloaded JSON file. A blob/object URL +
+// a[download] is a user-initiated download, not a network request (CSP-safe).
+function downloadBackup() {
+  const env = store.exportBackup();
+  let url = null;
+  try {
+    const json = JSON.stringify(env, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    url = URL.createObjectURL(blob);
+    const d = new Date();
+    const p = (n) => String(n).padStart(2, "0");
+    const fname = `car-service-backup-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fname;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast("Backup saved · check your downloads");
+  } catch (_) {
+    toast("Couldn't create the backup file. Please try again.", { type: "error" });
+  } finally {
+    if (url) URL.revokeObjectURL(url);
+  }
+}
+
+// Read a user-picked file, parse it defensively, preview it, then confirm.
+function restoreFromFile(file) {
+  const reader = new FileReader();
+  reader.onerror = () => toast("Couldn't read that file. Please try again.", { type: "error" });
+  reader.onload = () => {
+    let parsed;
+    try {
+      parsed = safeJsonParse(reader.result);
+    } catch (_) {
+      toast("That file isn't valid JSON — pick a Car Service backup.", { type: "error" });
+      return;
+    }
+    const preview = store.previewImport(parsed);
+    if (!preview.ok) {
+      toast(preview.error || "That backup can't be restored.", { type: "error" });
+      return;
+    }
+    confirmRestore(parsed, preview.entryCount);
+  };
+  reader.readAsText(file);
+}
+
+// Confirmation dialog before we replace the user's live data.
+function confirmRestore(parsed, entryCount) {
+  const n = entryCount === 1 ? "1 service" : `${entryCount} services`;
+  openSheet({
+    title: "Restore from backup?",
+    render(body, ctl) {
+      const warn = el("p", { class: "tiny faint", attrs: { style: "margin:2px 2px 14px" },
+        text: `This will replace your current data with this backup (${n}). Your current data is snapshotted, so you can undo right after.` });
+
+      const confirm = el("button", { class: "btn btn-primary", attrs: { type: "button" }, text: "Replace my data" });
+      confirm.addEventListener("click", () => {
+        const res = store.commitImport(parsed);
+        ctl.close();
+        if (!res.ok) {
+          toast(res.error || "Restore failed — your data is unchanged.", { type: "error" });
+          return;
+        }
+        currentTab = "history";
+        render();
+        undoToast("Data restored — Undo", () => {
+          store.undoRestore();
+          render();
+          toast("Restore undone — your previous data is back.");
+        });
+      });
+
+      const cancel = el("button", { class: "btn btn-lite", attrs: { type: "button", style: "margin-top:10px" }, text: "Cancel" });
+      cancel.addEventListener("click", () => ctl.close());
+
+      body.append(warn, confirm, cancel);
+    }
+  });
+}
+
+// ---- Settings sheet (profile + backup) -------------------------------------
 
 function profileRow(name, value) {
   return el("div", { class: "setrow" }, [
@@ -337,15 +444,35 @@ function openSettings() {
   openSheet({
     title: "Settings",
     render(body) {
+      const lastAt = (state.settings && state.settings.lastBackupAt) || null;
       const backup = el("div", { class: "backup" }, [
         el("div", { class: "ic", attrs: { "aria-hidden": "true" }, text: "🛟" }),
         el("div", { attrs: { style: "flex:1" } }, [
-          el("div", { attrs: { style: "font-weight:700;font-size:14px" }, text: "Everything is saved on this device" }),
-          el("div", { class: "tiny muted", text: "Backup & restore arrives in a later update." })
+          el("div", { attrs: { style: "font-weight:700;font-size:14px" }, text: "Keep a safe copy" }),
+          el("div", { class: "tiny muted backup-status", text: backupStatus(lastAt) }),
+          el("div", { class: "tiny faint", attrs: { style: "margin-top:3px" },
+            text: "Your backup file contains your car details, workshops and notes — keep it private." })
         ])
       ]);
+
       const backupBtn = el("button", { class: "btn btn-primary", attrs: { type: "button" }, text: "Back up now" });
-      backupBtn.addEventListener("click", () => toast("Backup & restore is coming in a later update."));
+      backupBtn.addEventListener("click", () => {
+        downloadBackup();
+        const s = backup.querySelector(".backup-status");
+        if (s) s.textContent = backupStatus((store.getState().settings || {}).lastBackupAt);
+      });
+
+      // Hidden file input drives "Restore from file".
+      const fileInput = el("input", {
+        attrs: { type: "file", accept: "application/json,.json", style: "display:none", "aria-hidden": "true", tabindex: "-1" }
+      });
+      fileInput.addEventListener("change", () => {
+        const f = fileInput.files && fileInput.files[0];
+        if (f) restoreFromFile(f);
+        fileInput.value = ""; // allow re-picking the same file
+      });
+      const restoreBtn = el("button", { class: "btn btn-lite", attrs: { type: "button", style: "margin-top:10px" }, text: "Restore from file" });
+      restoreBtn.addEventListener("click", () => fileInput.click());
 
       const name = p.name && String(p.name).trim() ? String(p.name).trim() : "Not named yet";
       const makeModel = [p.year, p.make, p.model].filter((x) => x != null && String(x).trim() !== "").map(String).join(" ") || "—";
@@ -357,6 +484,8 @@ function openSettings() {
       body.append(
         backup,
         backupBtn,
+        restoreBtn,
+        fileInput,
         el("h2", { class: "slab", attrs: { style: "margin-top:20px" }, text: "Car profile" }),
         profileRow(name, makeModel),
         profileRow("Plate", plate),

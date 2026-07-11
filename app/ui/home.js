@@ -20,10 +20,27 @@ function noMatch() {
   ]);
 }
 
-// handlers: { onGear(), onEdit(id), onDelete(id) }
+// Gentle, non-modal "you haven't backed up" reminder. Tapping it opens Settings.
+function backupNudge(onNudge) {
+  return el("button", {
+    class: "nudge",
+    attrs: { type: "button", "aria-label": "Not backed up yet — open Settings to keep a safe copy" }
+  }, [
+    el("span", { class: "nudge-ic", attrs: { "aria-hidden": "true" }, text: "🛟" }),
+    el("span", { class: "nudge-tx", text: "Not backed up yet — keep a safe copy" }),
+    el("span", { class: "nudge-go", attrs: { "aria-hidden": "true" }, text: "›" })
+  ]);
+}
+
+// handlers: { onGear(), onEdit(id), onDelete(id), needsBackup?, onNudge?() }
 export function renderHome(car, currency, handlers) {
   const frag = document.createDocumentFragment();
   frag.appendChild(carHeader(car, currency, handlers.onGear));
+  if (handlers.needsBackup && typeof handlers.onNudge === "function") {
+    const nudge = backupNudge();
+    nudge.addEventListener("click", handlers.onNudge);
+    frag.appendChild(nudge);
+  }
   frag.appendChild(el("h2", { class: "slab", text: "Next due" }));
   frag.appendChild(dueStrip(car));
   frag.appendChild(el("h2", { class: "slab", text: "Service history" }));

@@ -1,7 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { escapeHtml, fmtKm, fmtMoney, fmtDate } from "../src/format.js";
-import { validateEntry, coerceNumber, isYMD, validateImportEnvelope } from "../src/validate.js";
+import { validateEntry, coerceNumber, isYMD, validateImportEnvelope, safeJsonParse } from "../src/validate.js";
+import { CURRENT_VERSION } from "../src/schema.js";
 
 // ---- format.js ----
 
@@ -85,4 +86,86 @@ test("validateImportEnvelope rejects foreign / newer / accepts good", () => {
   assert.equal(validateImportEnvelope({ app: "something-else", schemaVersion: 2, data: {} }).ok, false);
   assert.equal(validateImportEnvelope({ app: "car-service", schemaVersion: 999, data: {} }).ok, false);
   assert.equal(validateImportEnvelope({ app: "car-service", schemaVersion: 2, data: {} }).ok, true);
+});
+
+// ---- Import trust boundary (Slice 4) ----
+
+const goodCar = () => ({
+  id: "car-x",
+  profile: { name: "Daily", make: "Toyota", model: "Corolla", year: 2019, plate: "A-1" },
+  entries: [
+    { id: "e1", date: "2026-01-01", odometer: 50000, workshop: "Speedy", cost: 120, tags: ["oil"], notes: "ok",
+      createdAt: "t0", updatedAt: "t0", deletedAt: null }
+  ],
+  intervals: { oil: { km: 10000 } },
+  baselines: { brake_fluid: { odometer: 35000 } }
+});
+const goodEnvelope = () => ({
+  app: "car-service",
+  schemaVersion: CURRENT_VERSION,
+  exportedAt: "2026-07-11T00:00:00.000Z",
+  data: { version: CURRENT_VERSION, activeCarId: "car-x", cars: [goodCar()], settings: { theme: "light", currencyLabel: "AED" } }
+});
+
+test("validateImportEnvelope rejects non-object / missing version", () => {
+  assert.equal(validateImportEnvelope(null).ok, false);
+  assert.equal(validateImportEnvelope("nope").ok, false);
+  assert.equal(validateImportEnvelope({ app: "car-service", data: {} }).ok, false); // no schemaVersion
+  assert.equal(validateImportEnvelope({ app: "car-service", schemaVersion: 1.5, data: {} }).ok, false);
+});
+
+test("validateImportEnvelope newer-version error mentions updating", () => {
+  const r = validateImportEnvelope({ app: "car-service", schemaVersion: CURRENT_VERSION + 1, data: {} });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /newer version/i);
+});
+
+test("validateImportEnvelope accepts a good envelope and returns clean data", () => {
+  const r = validateImportEnvelope(goodEnvelope());
+  assert.equal(r.ok, true);
+  assert.equal(r.data.cars.length, 1);
+  assert.equal(r.data.cars[0].entries[0].odometer, 50000);
+  assert.equal(r.data.cars[0].entries[0].cost, 120);
+  assert.equal(r.data.cars[0].entries[0].date, "2026-01-01");
+});
+
+test("validateImportEnvelope drops unknown tags and unknown keys", () => {
+  const env = goodEnvelope();
+  env.data.cars[0].entries[0].tags = ["oil", "not_a_real_job", "TIRES"];
+  env.data.cars[0].entries[0].evil = "should be dropped";
+  env.data.cars[0].hackerField = 1;
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.data.cars[0].entries[0].tags, ["oil", "tires"]);
+  assert.equal("evil" in r.data.cars[0].entries[0], false);
+  assert.equal("hackerField" in r.data.cars[0], false);
+});
+
+test("validateImportEnvelope rejects a file with an invalid entry date", () => {
+  const env = goodEnvelope();
+  env.data.cars[0].entries[0].date = "07/11/2026";
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /date/i);
+});
+
+test("validateImportEnvelope clamps a negative cost to 0 and bad odometer to null", () => {
+  const env = goodEnvelope();
+  env.data.cars[0].entries[0].cost = -99;
+  env.data.cars[0].entries[0].odometer = "not-a-number";
+  const r = validateImportEnvelope(env);
+  assert.equal(r.ok, true);
+  assert.equal(r.data.cars[0].entries[0].cost, 0);
+  assert.equal(r.data.cars[0].entries[0].odometer, null);
+});
+
+test("safeJsonParse strips __proto__ so it cannot pollute", () => {
+  const parsed = safeJsonParse('{"a":1,"__proto__":{"polluted":1}}');
+  assert.equal(parsed.a, 1);
+  assert.equal(({}).polluted, undefined); // Object.prototype untouched
+  assert.equal(Object.prototype.polluted, undefined);
+});
+
+test("safeJsonParse throws on invalid JSON (caller shows an error toast)", () => {
+  assert.throws(() => safeJsonParse("{not json"));
 });

@@ -147,6 +147,100 @@ test("setBaseline rejects a non-predicted job tag (sets lastError, no write)", (
   assert.equal(state.cars[0].baselines.tires, undefined);
 });
 
+// ---- Backup & restore (Slice 4) ----
+
+function seededStore() {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  store.addEntry({ date: "2026-01-01", odometer: 50000, cost: 120, tags: ["oil"], workshop: "Speedy", notes: "orig" });
+  store.addEntry({ date: "2026-03-01", odometer: 55000, cost: 80, tags: ["tires"] });
+  return store;
+}
+
+test("exportBackup returns a valid envelope whose data matches state + sets lastBackupAt", () => {
+  const store = seededStore();
+  const env = store.exportBackup();
+  assert.equal(env.app, "car-service");
+  assert.equal(env.schemaVersion, CURRENT_VERSION);
+  assert.equal(typeof env.exportedAt, "string");
+  assert.deepEqual(env.data, store.getState());
+  assert.equal(store.getState().settings.lastBackupAt, env.exportedAt);
+});
+
+test("previewImport reports correct car/entry counts without writing", () => {
+  const store = seededStore();
+  const env = store.exportBackup();
+  const before = JSON.stringify(store.getState());
+  const pv = store.previewImport(env);
+  assert.equal(pv.ok, true);
+  assert.equal(pv.carCount, 1);
+  assert.equal(pv.entryCount, 2); // both non-deleted
+  assert.equal(JSON.stringify(store.getState()), before); // no write
+});
+
+test("previewImport rejects a bad file and does not write", () => {
+  const store = seededStore();
+  const before = JSON.stringify(store.getState());
+  const pv = store.previewImport({ app: "not-us", schemaVersion: 2, data: {} });
+  assert.equal(pv.ok, false);
+  assert.ok(pv.error);
+  assert.equal(JSON.stringify(store.getState()), before);
+});
+
+test("commitImport replaces state, regenerates ids, keeps live data on a bad import", () => {
+  const store = seededStore();
+  const env = store.exportBackup();
+  const importedCarId = env.data.cars[0].id;
+  const importedEntryIds = env.data.cars[0].entries.map((e) => e.id);
+
+  // Bad import must not touch live data.
+  const liveBefore = JSON.stringify(store.getState());
+  const bad = store.commitImport({ app: "car-service", schemaVersion: 999, data: {} });
+  assert.equal(bad.ok, false);
+  assert.equal(JSON.stringify(store.getState()), liveBefore);
+
+  // Good import replaces state and regenerates every id.
+  const res = store.commitImport(env);
+  assert.equal(res.ok, true);
+  const car = res.state.cars[0];
+  assert.notEqual(car.id, importedCarId);
+  for (const e of car.entries) assert.equal(importedEntryIds.includes(e.id), false);
+  assert.equal(res.state.activeCarId, car.id); // activeCarId remapped to the new id
+});
+
+test("undoRestore brings back the exact pre-restore state (one level)", () => {
+  const store = seededStore();
+  const env = store.exportBackup();
+
+  // Change live data so we can prove the snapshot is the pre-restore version.
+  store.addEntry({ date: "2026-06-01", odometer: 60000, tags: ["oil"] });
+  const preRestore = JSON.stringify(store.getState());
+
+  store.commitImport(env); // now 2 entries (from env), snapshot holds the 3-entry state
+  assert.equal(store.getState().cars[0].entries.length, 2);
+
+  const undone = store.undoRestore();
+  assert.equal(JSON.stringify(undone), preRestore);
+  assert.equal(store.getState().cars[0].entries.length, 3);
+
+  // Second undo is a no-op (one level only).
+  const again = store.undoRestore();
+  assert.equal(JSON.stringify(again), preRestore);
+});
+
+test("export → commitImport roundtrip preserves entry count / dates / costs", () => {
+  const store = seededStore();
+  const env = store.exportBackup();
+  const res = store.commitImport(env);
+  assert.equal(res.ok, true);
+  const entries = res.state.cars[0].entries.slice().sort((a, b) => a.date.localeCompare(b.date));
+  assert.equal(entries.length, 2);
+  assert.equal(entries[0].date, "2026-01-01");
+  assert.equal(entries[0].cost, 120);
+  assert.equal(entries[1].date, "2026-03-01");
+  assert.equal(entries[1].cost, 80);
+});
+
 test("load migrates a stored v1 blob up to CURRENT_VERSION", () => {
   const storage = makeStorage();
   storage.setItem("car-service:data", JSON.stringify({
