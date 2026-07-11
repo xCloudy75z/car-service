@@ -22,6 +22,9 @@ self.addEventListener("activate", (e) => {
   })());
 });
 
+// Let the page force an immediately-waiting worker to take over (manual "Check for updates").
+self.addEventListener("message", (e) => { if (e.data === "skipWaiting") self.skipWaiting(); });
+
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
   if (e.request.method !== "GET" || url.origin !== location.origin) return; // let cross-origin (fonts) go to network

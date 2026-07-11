@@ -1,6 +1,6 @@
 // Service worker — cache-first app shell with a build-stamped cache name.
-// f4b88bea07 is replaced by scripts/build.js with a content hash so every deploy updates.
-const CACHE = "car-service-f4b88bea07";
+// 4a0b2bf2d1 is replaced by scripts/build.js with a content hash so every deploy updates.
+const CACHE = "car-service-4a0b2bf2d1";
 const SHELL = [
   "./", "./index.html", "./app.js", "./register-sw.js",
   "./store.js", "./select.js", "./schema.js", "./validate.js",
@@ -21,6 +21,9 @@ self.addEventListener("activate", (e) => {
     await self.clients.claim();
   })());
 });
+
+// Let the page force an immediately-waiting worker to take over (manual "Check for updates").
+self.addEventListener("message", (e) => { if (e.data === "skipWaiting") self.skipWaiting(); });
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);

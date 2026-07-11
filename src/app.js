@@ -11,6 +11,7 @@ import { el, placeholder } from "./ui/render.js";
 import { renderHome } from "./ui/home.js";
 import { openSheet } from "./ui/sheet.js";
 import { toast, undoToast } from "./ui/toast.js";
+import { BUILD } from "./build-info.js";
 
 const store = createStore();
 let currentTab = "history";
@@ -23,6 +24,38 @@ function todayISO() {
 
 const fmtN = (n) => Math.round(Number(n)).toLocaleString("en-US");
 const currency = () => store.getState().settings.currencyLabel || "AED";
+
+// ---- Version + in-place update --------------------------------------------
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fmtBuilt(iso) {
+  if (!iso) return "dev build";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}, ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+const versionLabel = () => `${String(BUILD.version || "dev").slice(0, 7)} · built ${fmtBuilt(BUILD.builtAt)}`;
+
+// Force the service worker to fetch the newest build. If there is one, it installs,
+// takes over, and register-sw.js reloads the page — no re-download, no re-install.
+async function checkForUpdates() {
+  if (!("serviceWorker" in navigator)) {
+    toast("This browser has no in-place update — just reload the page.");
+    return;
+  }
+  toast("Checking for updates…");
+  let reg = null;
+  try { reg = await navigator.serviceWorker.getRegistration(); } catch (_) {}
+  if (!reg) { toast("Not installed yet — reload the page to get the latest."); return; }
+  try { await reg.update(); } catch (_) {}
+  if (reg.installing || reg.waiting) {
+    if (reg.waiting) reg.waiting.postMessage("skipWaiting");
+    toast("New version found — updating…");
+  } else {
+    toast("You're on the latest version.");
+  }
+}
 
 // ---- Rendering -------------------------------------------------------------
 
@@ -249,6 +282,9 @@ function openSettings() {
       const makeModel = [p.year, p.make, p.model].filter((x) => x != null && String(x).trim() !== "").map(String).join(" ") || "—";
       const plate = p.plate && String(p.plate).trim() ? String(p.plate).trim() : "—";
 
+      const updateBtn = el("button", { class: "btn btn-lite", attrs: { type: "button", style: "margin-top:12px" }, text: "Check for updates" });
+      updateBtn.addEventListener("click", checkForUpdates);
+
       body.append(
         backup,
         backupBtn,
@@ -256,8 +292,11 @@ function openSettings() {
         profileRow(name, makeModel),
         profileRow("Plate", plate),
         profileRow("Currency", currency()),
-        el("p", { class: "tiny faint", attrs: { style: "text-align:center;margin-top:20px" },
-          text: "Editing your car profile arrives in a later update." })
+        el("p", { class: "tiny faint", attrs: { style: "text-align:center;margin-top:16px" },
+          text: "Editing your car profile arrives in a later update." }),
+        el("h2", { class: "slab", attrs: { style: "margin-top:20px" }, text: "App" }),
+        profileRow("Version", versionLabel()),
+        updateBtn
       );
     }
   });

@@ -33,5 +33,8 @@ const version = crypto.createHash("sha256").update(hashInput).digest("hex").slic
 const swPath = path.join(APP, "sw.js");
 fs.writeFileSync(swPath, fs.readFileSync(swPath, "utf8").replaceAll("__VERSION__", version));
 
-const size = fs.readdirSync(APP).length;
-console.log(`built app/ · sw cache car-service-${version} · ${size} top-level entries`);
+// 4. Write the build stamp the app shows in Settings (version + timestamp).
+const builtAt = new Date().toISOString();
+fs.writeFileSync(path.join(APP, "build-info.js"), `export const BUILD = ${JSON.stringify({ version, builtAt })};\n`);
+
+console.log(`built app/ · version ${version} · built ${builtAt}`);
