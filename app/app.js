@@ -9,6 +9,7 @@ import { validateEntry, coerceNumber } from "./validate.js";
 import { currentKm } from "./calc.js";
 import { el, placeholder } from "./ui/render.js";
 import { renderHome } from "./ui/home.js";
+import { renderMaintenance } from "./ui/maintenance.js";
 import { openSheet } from "./ui/sheet.js";
 import { toast, undoToast } from "./ui/toast.js";
 import { BUILD } from "./build-info.js";
@@ -79,9 +80,7 @@ function render() {
       renderHome(car, currency(), { onGear: openSettings, onEdit: (id) => openAdd(id), onDelete })
     );
   } else if (currentTab === "due") {
-    app.appendChild(
-      placeholder("Maintenance", "Full prediction rows with progress bars and time reminders are coming next.", "🔧")
-    );
+    app.appendChild(renderMaintenance(car, { onSetAnchor: openAnchor }));
   } else {
     app.appendChild(
       placeholder("Insights", "Your spending trends and cost-by-job breakdown are coming next.", "📊")
@@ -244,6 +243,77 @@ function openAdd(id) {
           el("p", { class: "tiny faint", attrs: { style: "text-align:center;margin-top:10px" },
             text: "Ticking a job resets its “next due” clock automatically." })
         );
+      }
+    }
+  });
+}
+
+// ---- Used-car anchor sheet -------------------------------------------------
+
+function openAnchor(tag) {
+  const car = getActiveCar(store.getState());
+  const existing = (car.baselines && car.baselines[tag]) || null;
+  const job = JOBS[tag] || { label: tag };
+
+  openSheet({
+    title: "Last done — " + job.label,
+    initialFocus: "#f-anchor-odo",
+    render(body, ctl) {
+      const odoEl = el("input", {
+        attrs: {
+          inputmode: "numeric", id: "f-anchor-odo", placeholder: "e.g. 60000",
+          value: existing && existing.odometer != null ? String(existing.odometer) : ""
+        }
+      });
+      const dateEl = el("input", {
+        attrs: { type: "date", id: "f-anchor-date", value: existing && existing.date ? existing.date : "" }
+      });
+
+      const saveBtn = el("button", {
+        class: "btn btn-primary", attrs: { type: "button", style: "margin-top:18px" }, text: "Save"
+      });
+      function save() {
+        const v = coerceNumber(odoEl.value);
+        if (!Number.isFinite(v) || v < 0) {
+          toast("Enter the odometer reading from when this was last done.", { type: "error" });
+          return;
+        }
+        store.setBaseline(tag, { odometer: v, date: dateEl.value.trim() === "" ? undefined : dateEl.value });
+        if (store.lastError) {
+          toast("Couldn't save that anchor — please try again.", { type: "error" });
+          return;
+        }
+        ctl.close();
+        render();
+        toast("Saved");
+      }
+      saveBtn.addEventListener("click", save);
+
+      body.append(
+        el("p", {
+          class: "tiny faint", attrs: { style: "margin:2px 2px 4px" },
+          text: "For a used car: roughly when was this last done? We predict from here until you log a real service."
+        }),
+        field("Odometer when last done (km)", odoEl),
+        field("Date", dateEl, "optional"),
+        saveBtn
+      );
+
+      if (existing) {
+        const clearBtn = el("button", {
+          class: "btn btn-lite", attrs: { type: "button", style: "margin-top:10px" }, text: "Clear anchor"
+        });
+        clearBtn.addEventListener("click", () => {
+          store.clearBaseline(tag);
+          if (store.lastError) {
+            toast("Couldn't clear that anchor — please try again.", { type: "error" });
+            return;
+          }
+          ctl.close();
+          render();
+          toast("Anchor cleared");
+        });
+        body.appendChild(clearBtn);
       }
     }
   });

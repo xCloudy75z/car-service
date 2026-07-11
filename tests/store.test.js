@@ -94,6 +94,59 @@ test("corrupt stored JSON recovers to a fresh seeded state (never crashes)", () 
   assert.equal(state.cars.length, 1);
 });
 
+test("setBaseline stores under the active car's baselines[tag]", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const state = store.setBaseline("brake_fluid", { odometer: 35000, date: "2025-01-01" });
+  assert.equal(store.lastError, null);
+  assert.deepEqual(state.cars[0].baselines.brake_fluid, { odometer: 35000, date: "2025-01-01" });
+});
+
+test("setBaseline without a date stores just the odometer", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const state = store.setBaseline("oil", { odometer: 20000 });
+  assert.equal(store.lastError, null);
+  assert.deepEqual(state.cars[0].baselines.oil, { odometer: 20000 });
+});
+
+test("setBaseline persists so a second store sees the anchor", () => {
+  const storage = makeStorage();
+  const s1 = createStore(storage, makeClock());
+  s1.load();
+  s1.setBaseline("brake_fluid", { odometer: 35000 });
+  const s2 = createStore(storage, makeClock());
+  const state = s2.load();
+  assert.deepEqual(state.cars[0].baselines.brake_fluid, { odometer: 35000 });
+});
+
+test("clearBaseline removes the anchor", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  store.setBaseline("brake_fluid", { odometer: 35000 });
+  const state = store.clearBaseline("brake_fluid");
+  assert.equal(state.cars[0].baselines.brake_fluid, undefined);
+});
+
+test("setBaseline rejects a non-finite or negative odometer (sets lastError, no write)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const state = store.setBaseline("oil", { odometer: -5 });
+  assert.ok(store.lastError);
+  assert.equal(state.cars[0].baselines.oil, undefined);
+  store.setBaseline("oil", { odometer: NaN });
+  assert.ok(store.lastError);
+  assert.equal(store.getState().cars[0].baselines.oil, undefined);
+});
+
+test("setBaseline rejects a non-predicted job tag (sets lastError, no write)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const state = store.setBaseline("tires", { odometer: 1000 }); // tires is predicted:false
+  assert.ok(store.lastError);
+  assert.equal(state.cars[0].baselines.tires, undefined);
+});
+
 test("load migrates a stored v1 blob up to CURRENT_VERSION", () => {
   const storage = makeStorage();
   storage.setItem("car-service:data", JSON.stringify({

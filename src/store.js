@@ -2,7 +2,7 @@
 // temp-key-then-swap writes, and quota handling. Storage backend is injectable for
 // testing; defaults to window.localStorage in the browser.
 
-import { CURRENT_VERSION, DEFAULT_INTERVALS } from "./schema.js";
+import { CURRENT_VERSION, DEFAULT_INTERVALS, JOBS } from "./schema.js";
 import { migrate } from "./migrate.js";
 import { getActiveCar } from "./select.js";
 
@@ -156,11 +156,50 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     );
   }
 
+  // Used-car "before I started logging" anchor for a predicted job.
+  // On invalid input we set lastError and return state unchanged (never persist bad data) —
+  // matching how the rest of the store surfaces failures via the lastError channel.
+  function setBaseline(tag, data) {
+    const s = ensureLoaded();
+    const job = JOBS[tag];
+    if (!job || !job.predicted) {
+      lastError = new Error(`setBaseline: "${tag}" is not a predicted job`);
+      return s;
+    }
+    const d = data || {};
+    const odometer = d.odometer;
+    if (typeof odometer !== "number" || !Number.isFinite(odometer) || odometer < 0) {
+      lastError = new Error("setBaseline: odometer must be a finite number ≥ 0");
+      return s;
+    }
+    const date = typeof d.date === "string" && d.date ? d.date : null;
+    const value = date ? { odometer, date } : { odometer };
+    return persist(
+      replaceActiveCar(s, (c) => ({
+        ...c,
+        baselines: { ...(c.baselines || {}), [tag]: value }
+      }))
+    );
+  }
+
+  function clearBaseline(tag) {
+    const s = ensureLoaded();
+    return persist(
+      replaceActiveCar(s, (c) => {
+        const next = { ...(c.baselines || {}) };
+        delete next[tag];
+        return { ...c, baselines: next };
+      })
+    );
+  }
+
   return {
     load,
     addEntry,
     updateEntry,
     deleteEntry,
+    setBaseline,
+    clearBaseline,
     getState: () => ensureLoaded(),
     createId,
     get lastError() {
