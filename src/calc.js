@@ -100,3 +100,19 @@ export function stats(car, todayISO) {
 
   return { total, thisYear, count, avgPerYear };
 }
+
+// Cost attributed per job: each non-deleted entry's cost is split evenly across
+// its tags and accumulated. Entries with no tags contribute nothing.
+// Returns [{ tag, total }] sorted by total descending. Pure (no clock/DOM).
+export function costByJob(car) {
+  const acc = {};
+  for (const e of activeEntries(car)) {
+    const tags = Array.isArray(e.tags) ? e.tags : [];
+    if (tags.length === 0) continue;
+    const share = numCost(e) / tags.length;
+    for (const t of tags) acc[t] = (acc[t] || 0) + share;
+  }
+  return Object.keys(acc)
+    .map((tag) => ({ tag, total: acc[tag] }))
+    .sort((a, b) => b.total - a.total);
+}

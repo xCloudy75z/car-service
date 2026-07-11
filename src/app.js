@@ -7,9 +7,10 @@ import { getActiveCar, activeEntries } from "./select.js";
 import { JOBS } from "./schema.js";
 import { validateEntry, coerceNumber } from "./validate.js";
 import { currentKm } from "./calc.js";
-import { el, placeholder } from "./ui/render.js";
+import { el } from "./ui/render.js";
 import { renderHome } from "./ui/home.js";
 import { renderMaintenance } from "./ui/maintenance.js";
+import { renderInsights } from "./ui/insights.js";
 import { openSheet } from "./ui/sheet.js";
 import { toast, undoToast } from "./ui/toast.js";
 import { BUILD } from "./build-info.js";
@@ -82,9 +83,7 @@ function render() {
   } else if (currentTab === "due") {
     app.appendChild(renderMaintenance(car, { onSetAnchor: openAnchor }));
   } else {
-    app.appendChild(
-      placeholder("Insights", "Your spending trends and cost-by-job breakdown are coming next.", "📊")
-    );
+    app.appendChild(renderInsights(car, currency(), todayISO()));
   }
 }
 

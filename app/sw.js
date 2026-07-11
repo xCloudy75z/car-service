@@ -1,6 +1,6 @@
 // Service worker — cache-first app shell with a build-stamped cache name.
-// e50b58ac21 is replaced by scripts/build.js with a content hash so every deploy updates.
-const CACHE = "car-service-e50b58ac21";
+// 31415c5450 is replaced by scripts/build.js with a content hash so every deploy updates.
+const CACHE = "car-service-31415c5450";
 const SHELL = [
   "./", "./index.html", "./app.js", "./register-sw.js",
   "./store.js", "./select.js", "./schema.js", "./validate.js",

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { currentKm, lastDone, predict, stats } from "../src/calc.js";
+import { currentKm, lastDone, predict, stats, costByJob } from "../src/calc.js";
 
 const car = (entries, baselines = {}) => ({ entries, baselines, intervals: null });
 const E = (id, date, odometer, tags) => ({ id, date, odometer, tags, deletedAt: null });
@@ -117,4 +117,47 @@ test("stats computes total, thisYear, count and a finite avgPerYear over a real 
   assert.equal(Number.isFinite(s.avgPerYear), true);
   // span = 365 days → denom = max(1, 365/365.25) = 1 → avg ~= total
   assert.equal(Math.round(s.avgPerYear), 500);
+});
+
+// ---- costByJob ------------------------------------------------------------
+
+const withCost = (id, cost, tags) => ({ ...E(id, "2026-01-01", 10000, tags), cost });
+
+test("costByJob single-tag entry attributes full cost to that job", () => {
+  const rows = costByJob(car([withCost(1, 200, ["oil"])]));
+  assert.deepEqual(rows, [{ tag: "oil", total: 200 }]);
+});
+
+test("costByJob splits a multi-tag entry evenly across its tags", () => {
+  const rows = costByJob(car([withCost(1, 300, ["oil", "air_filter", "tires"])]));
+  const map = Object.fromEntries(rows.map((r) => [r.tag, r.total]));
+  assert.equal(map.oil, 100);
+  assert.equal(map.air_filter, 100);
+  assert.equal(map.tires, 100);
+});
+
+test("costByJob accumulates across entries and sorts by total desc", () => {
+  const rows = costByJob(car([
+    withCost(1, 200, ["oil"]),
+    withCost(2, 100, ["oil", "tires"]), // oil +50, tires +50
+    withCost(3, 400, ["tires"])         // tires +400
+  ]));
+  // oil = 250, tires = 450 → tires first
+  assert.deepEqual(rows, [
+    { tag: "tires", total: 450 },
+    { tag: "oil", total: 250 }
+  ]);
+});
+
+test("costByJob ignores deleted entries and no-tag entries", () => {
+  const rows = costByJob(car([
+    withCost(1, 200, ["oil"]),
+    withCost(2, 999, []),                              // no tags → contributes nothing
+    { ...withCost(3, 500, ["oil"]), deletedAt: "x" }   // deleted → ignored
+  ]));
+  assert.deepEqual(rows, [{ tag: "oil", total: 200 }]);
+});
+
+test("costByJob empty → []", () => {
+  assert.deepEqual(costByJob(car([])), []);
 });

@@ -221,6 +221,52 @@ body {
 .ph-title { font-family: var(--fd); font-weight: 700; font-size: 24px; color: var(--ink); margin: 0 0 8px; }
 .ph-msg { font-size: 14px; max-width: 320px; margin: 0 auto; }
 
+/* ---- History search + job filter chips ---- */
+.search {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 13px;
+  background: var(--card); color: var(--ink); font-size: 14px; font-family: inherit;
+  margin: 2px 0 10px; box-shadow: var(--shadow-sm);
+}
+.search::placeholder { color: var(--faint); }
+.search:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-color: var(--accent); }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin: 0 -2px 4px; }
+.chips::-webkit-scrollbar { height: 0; }
+.chip {
+  flex: 0 0 auto; display: inline-flex; align-items: center; min-height: 44px;
+  border: 1px solid var(--line); background: var(--card); color: var(--muted);
+  font-size: 12.5px; font-weight: 600; padding: 0 14px; border-radius: 999px;
+  cursor: pointer; transition: background .15s, color .15s, border-color .15s; white-space: nowrap;
+}
+.chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+
+/* ---- Insights: stat tiles + cost-by-job breakdown ---- */
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
+.stat {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 14px; box-shadow: var(--shadow-sm);
+}
+.stat .k {
+  font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--faint);
+}
+.stat .v { font-weight: 700; font-size: 20px; margin-top: 3px; }
+.stat.costs { padding: 15px 15px 5px; }
+.cbrow { margin-bottom: 12px; }
+.cbhead { display: flex; justify-content: space-between; gap: 10px; font-size: 13px; margin-bottom: 6px; }
+.cbnm { font-weight: 600; }
+.cbamt { color: var(--muted); }
+.stat.costs .bar {
+  height: 9px; border-radius: 999px; background: var(--card2); overflow: hidden;
+  border: 1px solid var(--line);
+}
+.stat.costs .bar > i {
+  display: block; height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+@media (prefers-reduced-motion: no-preference) {
+  .chip { transition: background .15s, color .15s, border-color .15s; }
+}
+
 /* ---- Tab bar ---- */
 .tabbar {
   position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
