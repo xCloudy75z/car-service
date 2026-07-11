@@ -3,6 +3,11 @@
    responsive web app (no phone frame / island / splash / looks-switcher).
    Accessibility baked in: focus-visible rings, reduced-motion, ≥44px tap targets. */
 
+/* Self-hosted variable fonts (latin subset) — offline-first, zero off-origin requests. */
+@font-face { font-family: "Bricolage Grotesque"; src: url("../fonts/bricolage-grotesque.woff2") format("woff2"); font-weight: 600 800; font-style: normal; font-display: swap; }
+@font-face { font-family: "Inter"; src: url("../fonts/inter.woff2") format("woff2"); font-weight: 400 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "JetBrains Mono"; src: url("../fonts/jetbrains-mono.woff2") format("woff2"); font-weight: 500 700; font-style: normal; font-display: swap; }
+
 :root {
   --fd: "Bricolage Grotesque", system-ui, sans-serif;
   --fb: "Inter", system-ui, -apple-system, sans-serif;
@@ -356,7 +361,7 @@ textarea { resize: vertical; min-height: 60px; }
   width: 100%; border: 0; border-radius: 14px; padding: 15px; font-size: 16px; font-weight: 700;
   cursor: pointer; font-family: inherit; min-height: 44px;
 }
-.btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--accent-ink); }
+.btn-primary { background: var(--accent); color: var(--accent-ink); } /* solid fill: white-on-accent clears WCAG AA for button text */
 .btn-primary:active { filter: brightness(.95); }
 .btn-lite { background: var(--card2); color: var(--ink); border: 1px solid var(--line); }
 

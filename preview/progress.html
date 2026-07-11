@@ -57,7 +57,7 @@
   <div class="wrap">
     <div class="nav"><a href="../index.html">← Hub</a><a href="spec.html">📄 Spec</a><a href="review.html">🛡️ Review</a><a href="mockup.html">📱 Mockup</a></div>
     <h1>Build Progress</h1>
-    <p class="sub">Plan-before-build, done properly. <span class="live"><i></i>design phase · verified by 6 adversarial reviewers</span></p>
+    <p class="sub">Plan-before-build, done properly. <span class="live"><i></i>v1 shipped · installable, offline, accessible</span></p>
 
     <div class="barwrap">
       <div class="top"><span class="lbl">Design &amp; validation</span><span class="pct" id="pct">0%</span></div>
@@ -67,7 +67,7 @@
 
     <div id="list"></div>
 
-    <p class="foot">Every plan was <b>stress-tested before a line of code</b> — six Opus engineers tried to break it, and every fix is folded into the spec.<br>Next: your visual sign-off → build plan → build the core, prove it runs, then keep going.</p>
+    <p class="foot">Every plan was <b>stress-tested before a line of code</b> — six Opus engineers tried to break it, and every fix is folded into the spec.<br>All five slices shipped, each built test-first and verified running before deploy. <b>v1 is live.</b></p>
   </div>
 <script>
 const PHASES=[
@@ -91,7 +91,7 @@ const PHASES=[
    {n:"Slice 2 — Maintenance tab",d:"prediction rows, progress bars, used-car anchors, time captions — LIVE ✓",s:"done"},
    {n:"Slice 3 — Search + Insights",d:"live search, job filters, spend stats + cost-by-job — LIVE ✓",s:"done"},
    {n:"Slice 4 — Backup & Restore",d:"safe export + transactional restore (rejects hostile files) — LIVE ✓",s:"done"},
-   {n:"Slice 5 — Final hardening + ship",d:"a11y audit · CSP · SW-update flow · CI deploy · real-phone verify",s:"active"},
+   {n:"Slice 5 — Hardening + ship",d:"WCAG-AA contrast · a11y tabs · self-hosted fonts · locked CSP · CI gate — LIVE ✓",s:"done"},
  ]},
 ];
 const all=PHASES.flatMap(p=>p.tasks);
