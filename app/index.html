@@ -21,16 +21,16 @@
 </head>
 <body>
   <div id="app-root">
-    <main id="app" aria-live="off"></main>
+    <main id="app" role="tabpanel" aria-labelledby="tab-history" aria-live="off"></main>
 
     <button class="fab" id="fab" type="button" aria-label="Add service"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 
-    <nav class="tabbar" aria-label="Main sections">
-      <button class="tab active" type="button" data-tab="history" aria-selected="true">
+    <nav class="tabbar" role="tablist" aria-label="Main sections">
+      <button class="tab active" type="button" role="tab" id="tab-history" aria-controls="app" data-tab="history" aria-selected="true">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18"/></svg>History</button>
-      <button class="tab" type="button" data-tab="due" aria-selected="false">
+      <button class="tab" type="button" role="tab" id="tab-due" aria-controls="app" data-tab="due" aria-selected="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>Maintenance</button>
-      <button class="tab" type="button" data-tab="insights" aria-selected="false">
+      <button class="tab" type="button" role="tab" id="tab-insights" aria-controls="app" data-tab="insights" aria-selected="false">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V11M10 19V5M16 19v-6M22 19H2"/></svg>Insights</button>
     </nav>
   </div>

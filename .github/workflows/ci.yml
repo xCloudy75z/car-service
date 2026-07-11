@@ -1,0 +1,26 @@
+name: CI
+
+# Quality gate: runs the test suite, the purity lint, and a full build on every
+# push/PR to main. Does not deploy (the app/ folder is committed and served by
+# GitHub Pages from main) — this just guarantees main always tests + builds clean.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run tests
+        run: node --test "tests/**/*.test.js"
+      - name: Purity + safe-DOM lint
+        run: node scripts/lint-pure.js
+      - name: Build
+        run: node scripts/build.js

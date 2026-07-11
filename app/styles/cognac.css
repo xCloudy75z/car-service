@@ -16,19 +16,19 @@
   --card: #fffdf9;
   --card2: #f2ece1;
   --ink: #1d1711;
-  --muted: #7c7061;
-  --faint: #aa9d8b;
+  --muted: #73685a;   /* was #7c7061 — darkened so secondary text hits WCAG AA 4.5:1 on bg/card/card2/grey-soft */
+  --faint: #8a7f6e;   /* was #aa9d8b — darkened to ≥3:1 (tertiary/decorative); informational uses reassigned to --muted */
   --line: #e8dfd0;
   --glow: #e6bd84;
 
   --accent: #b45816;
-  --accent2: #e2913f;
+  --accent2: #ce8439; /* was #e2913f — darkened so white icon/large text on the warm gradient end clears 3:1 */
   --accent-soft: #f8ecd9;
   --accent-ink: #fff;
 
-  --green: #3f8f5b; --green-soft: #e6f1e8;
-  --amber: #c17d16; --amber-soft: #f7ecd2;
-  --red:   #bb3b2e; --red-soft:   #f7e4e1;
+  --green: #35784c; --green-soft: #e6f1e8;   /* green was #3f8f5b — darkened so pill text hits 4.5:1 on green-soft */
+  --amber: #956011; --amber-soft: #f7ecd2;   /* amber was #c17d16 — darkened so pill/caption text hits 4.5:1 */
+  --red:   #bb3b2e; --red-soft:   #f7e4e1;   /* red 4.54:1 on red-soft — already AA, unchanged */
   --grey:  #a99d8b; --grey-soft:  #efe9df;
 
   color-scheme: light;
@@ -91,7 +91,7 @@ body {
 
 .slab {
   font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em;
-  color: var(--faint); margin: 18px 4px 9px;
+  color: var(--muted); margin: 18px 4px 9px; /* informational section label — muted for AA, not faint */
 }
 
 /* ---- Car header ---- */
@@ -208,7 +208,7 @@ body {
 .mrow.s-over .bar > i { background: var(--red);   }
 .mrow .meta { font-size: 11.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 10px; }
 .mrow .cap { font-size: 11px; color: var(--amber); margin-top: 9px; display: flex; align-items: center; gap: 5px; }
-.mrow .anchor { font-size: 11px; color: var(--faint); font-style: italic; margin-top: 10px; }
+.mrow .anchor { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 10px; /* informational — muted for AA */ }
 .mrow .mini { margin-top: 10px; }
 
 /* ---- Empty / placeholder states ---- */
@@ -247,7 +247,7 @@ body {
 }
 .stat .k {
   font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
-  color: var(--faint);
+  color: var(--muted); /* informational stat-tile label — muted for AA, not faint */
 }
 .stat .v { font-weight: 700; font-size: 20px; margin-top: 3px; }
 .stat.costs { padding: 15px 15px 5px; }
@@ -277,9 +277,9 @@ body {
 }
 .tab {
   flex: 1; border: 0; background: none; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 3px; color: var(--faint);
+  align-items: center; justify-content: center; gap: 3px; color: var(--muted);
   font-size: 10.5px; font-weight: 700; cursor: pointer; font-family: inherit; min-height: 44px;
-}
+} /* inactive tab label uses --muted (AA); active tab is --accent */
 .tab svg { width: 23px; height: 23px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
 .tab.active { color: var(--accent); }
 

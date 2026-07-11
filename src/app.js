@@ -72,6 +72,8 @@ function render() {
     t.classList.toggle("active", on);
     t.setAttribute("aria-selected", on ? "true" : "false");
   });
+  // Keep the tabpanel labelled by whichever tab is active (ARIA tab pattern).
+  app.setAttribute("aria-labelledby", "tab-" + currentTab);
 
   const fab = document.getElementById("fab");
   fab.hidden = currentTab !== "history";
@@ -505,12 +507,31 @@ function openSettings() {
 function boot() {
   store.load();
   document.getElementById("fab").addEventListener("click", () => openAdd());
-  document.querySelectorAll(".tab").forEach((btn) =>
+  const tabs = Array.from(document.querySelectorAll(".tab"));
+  tabs.forEach((btn) =>
     btn.addEventListener("click", () => {
       currentTab = btn.dataset.tab;
       render();
     })
   );
+  // Roving Left/Right/Home/End moves between tabs (ARIA tablist keyboard support).
+  const tablist = document.querySelector(".tabbar");
+  if (tablist) {
+    tablist.addEventListener("keydown", (e) => {
+      const idx = tabs.findIndex((t) => t.dataset.tab === currentTab);
+      if (idx < 0) return;
+      let next = null;
+      if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (idx + 1) % tabs.length;
+      else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (idx - 1 + tabs.length) % tabs.length;
+      else if (e.key === "Home") next = 0;
+      else if (e.key === "End") next = tabs.length - 1;
+      if (next == null) return;
+      e.preventDefault();
+      currentTab = tabs[next].dataset.tab;
+      render();
+      tabs[next].focus();
+    });
+  }
   render();
   if (store.lastError) {
     toast("This browser is blocking local storage (private mode?). You can still use the app, but changes won't be saved.", { type: "error" });
