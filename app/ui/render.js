@@ -25,6 +25,28 @@ export function el(tag, opts = {}, children = []) {
   return node;
 }
 
+// ---- Inline SVG icons (crisp + perfectly centered, unlike emoji glyphs) ----
+const SVGNS = "http://www.w3.org/2000/svg";
+function svgNode(tag, attrs) {
+  const n = document.createElementNS(SVGNS, tag);
+  for (const [k, v] of Object.entries(attrs || {})) n.setAttribute(k, String(v));
+  return n;
+}
+function iconSvg(children) {
+  const s = svgNode("svg", {
+    viewBox: "0 0 24 24", fill: "none", stroke: "currentColor",
+    "stroke-width": "1.9", "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true"
+  });
+  for (const c of children) s.appendChild(c);
+  return s;
+}
+function gearIcon() {
+  return iconSvg([
+    svgNode("circle", { cx: 12, cy: 12, r: 3 }),
+    svgNode("path", { d: "M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" })
+  ]);
+}
+
 const fmtN = (n) => Math.round(Number(n)).toLocaleString("en-US");
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -75,7 +97,7 @@ export function carHeader(car, currency, onGear) {
 
   const cur = currentKm(car);
   return el("section", { class: "carhead", attrs: { "aria-label": "Vehicle summary" } }, [
-    el("button", { class: "gear", attrs: { type: "button", "aria-label": "Settings" }, on: { click: onGear } }, "⚙️"),
+    el("button", { class: "gear", attrs: { type: "button", "aria-label": "Settings" }, on: { click: onGear } }, [gearIcon()]),
     el("div", { class: "nick", text: nick }),
     el("div", { class: "mm", text: sub }),
     el("div", { class: "odo" }, [
