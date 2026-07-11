@@ -120,7 +120,8 @@ body {
   display: grid; place-items: center; padding: 0; line-height: 0;
 }
 .gear:hover { background: #ffffff40; }
-.gear svg { width: 20px; height: 20px; stroke: currentColor; fill: none; }
+/* Absolute-center the icon — immune to any iOS button-appearance / grid quirk. */
+.gear svg { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; stroke: currentColor; fill: none; }
 
 /* ---- Next-due strip ---- */
 .strip {
