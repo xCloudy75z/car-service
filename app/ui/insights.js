@@ -2,13 +2,10 @@
 // cost-by-job breakdown (from calc.costByJob). textContent-only, zero innerHTML —
 // mirrors the Maintenance tab's structure (title/sub + cards).
 
-import { JOBS } from "../schema.js";
 import { stats, costByJob } from "../calc.js";
+import { jobMeta } from "../select.js";
 import { fmtMoney } from "../format.js";
 import { el } from "./render.js";
-
-const jobLabel = (t) => (JOBS[t] ? JOBS[t].label : t);
-const jobIcon = (t) => (JOBS[t] ? JOBS[t].icon : "🔧");
 
 function statTile(k, v) {
   return el("div", { class: "stat" }, [
@@ -52,12 +49,13 @@ export function renderInsights(car, currency, todayISO) {
   const card = el("div", { class: "stat costs" });
   for (const r of rows) {
     const pct = max > 0 ? Math.round((r.total / max) * 100) : 0;
+    const { label, icon } = jobMeta(car, r.tag);
     card.appendChild(
-      el("div", { class: "cbrow", attrs: { "aria-label": `${jobLabel(r.tag)}: ${fmtMoney(r.total, currency)}` } }, [
+      el("div", { class: "cbrow", attrs: { "aria-label": `${label}: ${fmtMoney(r.total, currency)}` } }, [
         el("div", { class: "cbhead" }, [
           el("span", { class: "cbnm" }, [
-            el("span", { attrs: { "aria-hidden": "true" }, text: jobIcon(r.tag) + " " }),
-            document.createTextNode(jobLabel(r.tag))
+            el("span", { attrs: { "aria-hidden": "true" }, text: icon + " " }),
+            document.createTextNode(label)
           ]),
           el("span", { class: "cbamt mono", text: fmtMoney(r.total, currency) })
         ]),

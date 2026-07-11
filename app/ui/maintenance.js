@@ -2,32 +2,29 @@
 // `maintenanceRows(car)` is a PURE data helper (no clock, no DOM) — the renderer
 // turns those rows into DOM via the shared `el` helper (textContent only, zero innerHTML).
 
-import { JOBS, DEFAULT_INTERVALS } from "../schema.js";
-import { predict, currentKm } from "../calc.js";
-import { el, statusInfo } from "./render.js";
+import { predict, currentKm, predictedKeys, intervalFor } from "../calc.js";
+import { jobMeta } from "../select.js";
+import { el, statusInfo, compareJobRows } from "./render.js";
 
 const fmtN = (n) => Math.round(Number(n)).toLocaleString("en-US");
 
-const intervalFor = (car, tag) =>
-  (car.intervals && car.intervals[tag]) || DEFAULT_INTERVALS[tag] || null;
-
-// Ordered rows [{ tag, label, icon, p, caption }] for every predicted job,
-// sorted overdue → soon → ok → none (same order map as render.js dueStrip).
+// Ordered rows [{ tag, label, icon, p, caption }] for every job this car
+// predicts (keys in car.intervals), sorted overdue → soon → ok → none with the
+// stable canonical tiebreak (built-ins in JOBS order, then customs by label).
 // `caption` is set whenever the interval carries a `timeHintMonths` hint, else null.
 export function maintenanceRows(car) {
-  const order = { over: 0, soon: 1, ok: 2, none: 3 };
-  return Object.keys(JOBS)
-    .filter((t) => JOBS[t].predicted)
+  return predictedKeys(car)
     .map((tag) => {
       const p = predict(car, tag);
+      const { label, icon } = jobMeta(car, tag);
       const hint = p.timeHintMonths;
       const caption =
         typeof hint === "number"
           ? `also due by time (~every ${hint} months) — check your manual`
           : null;
-      return { tag, label: JOBS[tag].label, icon: JOBS[tag].icon, p, caption };
+      return { tag, label, icon, p, caption, status: p.status };
     })
-    .sort((a, b) => order[a.p.status] - order[b.p.status]);
+    .sort(compareJobRows);
 }
 
 // The "✓ OK" style pill — built exactly like render.js: an aria-hidden mark span
@@ -113,7 +110,16 @@ export function renderMaintenance(car, { onSetAnchor } = {}) {
     ])
   );
 
-  for (const row of maintenanceRows(car)) {
+  const rows = maintenanceRows(car);
+  if (rows.length === 0) {
+    wrap.appendChild(
+      el("div", { class: "empty" }, [
+        el("div", { class: "empty-ic", attrs: { "aria-hidden": "true" }, text: "🧰" }),
+        el("p", { text: "No predicted items yet — add intervals in Settings." })
+      ])
+    );
+  }
+  for (const row of rows) {
     wrap.appendChild(maintenanceCard(car, row, onSetAnchor));
   }
 

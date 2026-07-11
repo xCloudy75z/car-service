@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { createStore } from "../src/store.js";
-import { CURRENT_VERSION } from "../src/schema.js";
+import { CURRENT_VERSION, DEFAULT_INTERVALS } from "../src/schema.js";
 
 // In-memory localStorage shim (Map-backed) so store runs under Node.
 function makeStorage() {
@@ -359,6 +359,95 @@ test("undoRestore remains an alias for undoLast (app.js caller)", () => {
   store.deleteCar(secondId);
   const restored = store.undoRestore();
   assert.equal(restored.cars.length, 2);
+});
+
+// ---- Editable intervals (Slice 6b) ----
+
+test("setInterval merges km onto the existing interval, preserving timeHintMonths", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  // brake_fluid default = { km: 40000, timeHintMonths: 24 }
+  const state = store.setInterval("brake_fluid", 45000);
+  assert.equal(store.lastError, null);
+  assert.deepEqual(state.cars[0].intervals.brake_fluid, { km: 45000, timeHintMonths: 24 });
+});
+
+test("setInterval can also update the timeHintMonths when supplied", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const state = store.setInterval("brake_fluid", 45000, 36);
+  assert.deepEqual(state.cars[0].intervals.brake_fluid, { km: 45000, timeHintMonths: 36 });
+});
+
+test("setInterval rejects a non-finite or ≤0 km (lastError, no write)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const before = JSON.stringify(store.getState());
+  const s1 = store.setInterval("oil", 0);
+  assert.ok(store.lastError);
+  assert.equal(JSON.stringify(s1), before);
+  store.setInterval("oil", -100);
+  assert.ok(store.lastError);
+  store.setInterval("oil", NaN);
+  assert.ok(store.lastError);
+  assert.equal(JSON.stringify(store.getState()), before);
+});
+
+test("setInterval rejects a key not in allJobs(activeCar) (lastError, no write)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const before = JSON.stringify(store.getState());
+  const s = store.setInterval("cj_ghost", 10000);
+  assert.ok(store.lastError);
+  assert.equal(JSON.stringify(s), before);
+});
+
+test("setInterval enables a predicted:false built-in (e.g. brakes)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  const state = store.setInterval("brakes", 60000);
+  assert.equal(store.lastError, null);
+  assert.deepEqual(state.cars[0].intervals.brakes, { km: 60000 });
+});
+
+test("removeInterval deletes the key and leaves entries untouched", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  store.addEntry({ date: "2026-01-01", odometer: 50000, tags: ["oil"] });
+  const state = store.removeInterval("oil");
+  assert.equal(state.cars[0].intervals.oil, undefined);
+  assert.equal(state.cars[0].entries.length, 1);
+  assert.deepEqual(state.cars[0].entries[0].tags, ["oil"]);
+});
+
+test("resetIntervals restores a deep copy of DEFAULT_INTERVALS", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  store.setInterval("oil", 5000);
+  store.removeInterval("spark_plugs");
+  const state = store.resetIntervals();
+  assert.deepEqual(state.cars[0].intervals, DEFAULT_INTERVALS);
+  // deep copy — mutating stored state must not touch the shared constant
+  state.cars[0].intervals.oil.km = 1;
+  assert.equal(DEFAULT_INTERVALS.oil.km, 10000);
+});
+
+test("setBaseline succeeds for a predicted:false built-in enabled via setInterval", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  store.setInterval("brakes", 60000); // enable it
+  const state = store.setBaseline("brakes", { odometer: 30000 });
+  assert.equal(store.lastError, null);
+  assert.deepEqual(state.cars[0].baselines.brakes, { odometer: 30000 });
+});
+
+test("setBaseline rejects a key that has no interval (not predicted)", () => {
+  const store = createStore(makeStorage(), makeClock());
+  store.load();
+  store.removeInterval("oil"); // now oil is not predicted
+  const state = store.setBaseline("oil", { odometer: 20000 });
+  assert.ok(store.lastError);
+  assert.equal(state.cars[0].baselines.oil, undefined);
 });
 
 test("load migrates a stored v1 blob up to CURRENT_VERSION", () => {

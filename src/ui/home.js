@@ -6,11 +6,7 @@
 // caret is never lost mid-typing and the header / Next-due strip stay put.
 
 import { el, carHeader, dueStrip, timeline } from "./render.js";
-import { activeEntries, filterEntries } from "../select.js";
-import { JOBS } from "../schema.js";
-
-const jobLabel = (t) => (JOBS[t] ? JOBS[t].label : t);
-const jobIcon = (t) => (JOBS[t] ? JOBS[t].icon : "🔧");
+import { activeEntries, filterEntries, allJobs, jobMeta } from "../select.js";
 
 // Distinct "no search match" state (visually separate from the first-run empty).
 function noMatch() {
@@ -91,11 +87,12 @@ export function renderHome(car, currency, handlers) {
     }
 
     addChip(null, "All");
-    for (const t of Object.keys(JOBS)) {
+    for (const t of Object.keys(allJobs(car))) {
       if (!all.some((e) => Array.isArray(e.tags) && e.tags.includes(t))) continue;
+      const { label, icon } = jobMeta(car, t);
       addChip(t, [
-        el("span", { attrs: { "aria-hidden": "true" }, text: jobIcon(t) + " " }),
-        document.createTextNode(jobLabel(t))
+        el("span", { attrs: { "aria-hidden": "true" }, text: icon + " " }),
+        document.createTextNode(label)
       ]);
     }
 
@@ -106,15 +103,15 @@ export function renderHome(car, currency, handlers) {
   // Rebuild ONLY the list node. Called on every input/chip change.
   function refresh() {
     if (all.length === 0) {
-      listHost.replaceChildren(timeline([], currency, handlers)); // first-run empty state
+      listHost.replaceChildren(timeline([], currency, handlers, car)); // first-run empty state
       return;
     }
-    const filtered = filterEntries(all, { query, tag });
+    const filtered = filterEntries(all, { query, tag }, car);
     if (filtered.length === 0) {
       listHost.replaceChildren(noMatch());
       live.textContent = "No services match your search.";
     } else {
-      listHost.replaceChildren(timeline(filtered, currency, handlers));
+      listHost.replaceChildren(timeline(filtered, currency, handlers, car));
       live.textContent = `${filtered.length} service${filtered.length === 1 ? "" : "s"} shown.`;
     }
   }

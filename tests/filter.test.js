@@ -61,3 +61,17 @@ test("tolerates missing fields / undefined options", () => {
   assert.equal(filterEntries(bare, { query: "oil" }).length, 1); // matches "Engine oil" label
   assert.equal(filterEntries(undefined, { query: "x" }).length, 0);
 });
+
+test("with a car, query matches a custom job's label via jobMeta", () => {
+  const car = { customJobs: { cj_ab12: { label: "Coolant flush", icon: "❄️" } } };
+  const withCustom = [
+    { id: 1, tags: ["cj_ab12"], workshop: "", notes: "", deletedAt: null },
+    { id: 2, tags: ["oil"], workshop: "", notes: "", deletedAt: null }
+  ];
+  // Without the car, the custom key isn't searchable by its label.
+  assert.deepEqual(filterEntries(withCustom, { query: "coolant" }).map((e) => e.id), []);
+  // With the car, the custom label resolves and matches.
+  assert.deepEqual(filterEntries(withCustom, { query: "coolant" }, car).map((e) => e.id), [1]);
+  // Built-in labels still resolve when a car is supplied.
+  assert.deepEqual(filterEntries(withCustom, { query: "engine oil" }, car).map((e) => e.id), [2]);
+});

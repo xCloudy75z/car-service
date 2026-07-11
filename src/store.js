@@ -2,9 +2,10 @@
 // temp-key-then-swap writes, and quota handling. Storage backend is injectable for
 // testing; defaults to window.localStorage in the browser.
 
-import { CURRENT_VERSION, DEFAULT_INTERVALS, JOBS } from "./schema.js";
+import { CURRENT_VERSION, DEFAULT_INTERVALS } from "./schema.js";
 import { migrate } from "./migrate.js";
-import { getActiveCar } from "./select.js";
+import { getActiveCar, allJobs } from "./select.js";
+import { predictedKeys } from "./calc.js";
 import { validateImportEnvelope } from "./validate.js";
 
 const deepClone = (x) => JSON.parse(JSON.stringify(x));
@@ -190,8 +191,10 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
   // matching how the rest of the store surfaces failures via the lastError channel.
   function setBaseline(tag, data) {
     const s = ensureLoaded();
-    const job = JOBS[tag];
-    if (!job || !job.predicted) {
+    // A job is anchorable iff it is predicted for this car — i.e. its key is in
+    // the active car's intervals (a custom job, or a built-in enabled via
+    // setInterval, both qualify; a key with no interval does not).
+    if (!predictedKeys(getActiveCar(s)).includes(tag)) {
       lastError = new Error(`setBaseline: "${tag}" is not a predicted job`);
       return s;
     }
@@ -220,6 +223,53 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
         return { ...c, baselines: next };
       })
     );
+  }
+
+  // ---- Intervals (active car) ----------------------------------------------
+
+  // Set/enable a predicted interval for the active car. `key` must be a known
+  // job (built-in or a custom job of this car); `km` must be finite > 0.
+  // MERGES onto the existing interval so a km-only edit preserves timeHintMonths;
+  // an explicit timeHintMonths (only when provided) overwrites it.
+  function setInterval(key, km, timeHintMonths) {
+    const s = ensureLoaded();
+    if (!allJobs(getActiveCar(s))[key]) {
+      lastError = new Error(`setInterval: "${key}" is not a known job`);
+      return s;
+    }
+    if (typeof km !== "number" || !Number.isFinite(km) || km <= 0) {
+      lastError = new Error("setInterval: km must be a finite number > 0");
+      return s;
+    }
+    return persist(
+      replaceActiveCar(s, (c) => {
+        const existing = (c.intervals && c.intervals[key]) || {};
+        const merged = {
+          ...existing,
+          km,
+          ...(timeHintMonths !== undefined ? { timeHintMonths } : {})
+        };
+        return { ...c, intervals: { ...(c.intervals || {}), [key]: merged } };
+      })
+    );
+  }
+
+  // Stop predicting `key` for the active car. Entries keep their tags untouched.
+  function removeInterval(key) {
+    const s = ensureLoaded();
+    return persist(
+      replaceActiveCar(s, (c) => {
+        const next = { ...(c.intervals || {}) };
+        delete next[key];
+        return { ...c, intervals: next };
+      })
+    );
+  }
+
+  // Reset the active car's intervals to a fresh deep copy of DEFAULT_INTERVALS.
+  function resetIntervals() {
+    const s = ensureLoaded();
+    return persist(replaceActiveCar(s, (c) => ({ ...c, intervals: cloneIntervals() })));
   }
 
   // ---- Backup & restore (transactional) ------------------------------------
@@ -403,6 +453,9 @@ export function createStore(storage = defaultBackend(), now = defaultNow) {
     deleteEntry,
     setBaseline,
     clearBaseline,
+    setInterval,
+    removeInterval,
+    resetIntervals,
     addCar,
     switchCar,
     updateCarProfile,

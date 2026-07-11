@@ -2,7 +2,8 @@
 // createTextNode — never innerHTML — so injection is impossible by construction.
 
 import { JOBS } from "../schema.js";
-import { predict, currentKm } from "../calc.js";
+import { predict, currentKm, predictedKeys } from "../calc.js";
+import { jobMeta } from "../select.js";
 import { fmtKm, fmtMoney, fmtDate } from "../format.js";
 
 // Tiny element helper. `children` may be nodes or strings (→ text nodes).
@@ -56,8 +57,23 @@ function fmtDateNice(iso) {
   return `${+d} ${MONTHS[+m - 1]} ${y}`;
 }
 
-const jobLabel = (t) => (JOBS[t] ? JOBS[t].label : t);
-const jobIcon = (t) => (JOBS[t] ? JOBS[t].icon : "🔧");
+// Stable job ordering shared by the Next-due strip and the Maintenance tab:
+// first by status (over→soon→ok→none), then a canonical index — built-ins in
+// JOBS order, then custom jobs by label. Items expose { tag, label, status }.
+const JOB_KEYS = Object.keys(JOBS);
+const STATUS_ORDER = { over: 0, soon: 1, ok: 2, none: 3 };
+export function compareJobRows(a, b) {
+  const so = (STATUS_ORDER[a.status] ?? 9) - (STATUS_ORDER[b.status] ?? 9);
+  if (so !== 0) return so;
+  const ai = JOB_KEYS.indexOf(a.tag);
+  const bi = JOB_KEYS.indexOf(b.tag);
+  const aBuiltin = ai !== -1;
+  const bBuiltin = bi !== -1;
+  if (aBuiltin && bBuiltin) return ai - bi;
+  if (aBuiltin) return -1; // built-ins before customs
+  if (bBuiltin) return 1;
+  return String(a.label).localeCompare(String(b.label)); // customs by label
+}
 
 // Icon + words + machine-readable aria text for a prediction result.
 export function statusInfo(p) {
@@ -127,21 +143,32 @@ export function carHeader(car, currency, onGear, onSwitch, carCount = 1) {
   ]);
 }
 
-// Horizontal strip of predicted jobs, sorted overdue → soon → ok → none.
+// Horizontal strip of this car's predicted jobs (keys in car.intervals),
+// sorted overdue → soon → ok → none with the stable canonical tiebreak.
+// When the car predicts nothing, renders an explicit empty-state node.
 export function dueStrip(car) {
-  const order = { over: 0, soon: 1, ok: 2, none: 3 };
-  const items = Object.keys(JOBS)
-    .filter((t) => JOBS[t].predicted)
-    .map((t) => ({ t, p: predict(car, t) }))
-    .sort((a, b) => order[a.p.status] - order[b.p.status]);
+  const items = predictedKeys(car)
+    .map((tag) => {
+      const { label, icon } = jobMeta(car, tag);
+      const p = predict(car, tag);
+      return { tag, label, icon, p, status: p.status };
+    })
+    .sort(compareJobRows);
 
   const strip = el("div", { class: "strip", attrs: { role: "list", "aria-label": "Upcoming maintenance" } });
-  for (const { t, p } of items) {
+  if (items.length === 0) {
+    strip.classList.add("strip-empty");
+    strip.appendChild(
+      el("div", { class: "due-empty", attrs: { role: "listitem" }, text: "No predicted items yet — add intervals in Settings." })
+    );
+    return strip;
+  }
+  for (const { label, icon, p } of items) {
     const s = statusInfo(p);
     strip.appendChild(
-      el("div", { class: "due " + s.cls, attrs: { role: "listitem", "aria-label": `${jobLabel(t)}: ${s.aria}` } }, [
-        el("div", { class: "due-ico", attrs: { "aria-hidden": "true" }, text: jobIcon(t) }),
-        el("div", { class: "due-nm", text: jobLabel(t) }),
+      el("div", { class: "due " + s.cls, attrs: { role: "listitem", "aria-label": `${label}: ${s.aria}` } }, [
+        el("div", { class: "due-ico", attrs: { "aria-hidden": "true" }, text: icon }),
+        el("div", { class: "due-nm", text: label }),
         statusPill(s),
         el("div", { class: "due-sub", attrs: { "aria-hidden": "true" }, text: s.sub })
       ])
@@ -150,25 +177,27 @@ export function dueStrip(car) {
   return strip;
 }
 
-function jobsRow(tags) {
+function jobsRow(tags, car) {
   return el(
     "div",
     { class: "jobs" },
-    (tags || []).map((t) =>
-      el("span", { class: "jtag" }, [
-        el("span", { attrs: { "aria-hidden": "true" }, text: jobIcon(t) + " " }),
-        document.createTextNode(jobLabel(t))
-      ])
-    )
+    (tags || []).map((t) => {
+      const { label, icon } = jobMeta(car, t);
+      return el("span", { class: "jtag" }, [
+        el("span", { attrs: { "aria-hidden": "true" }, text: icon + " " }),
+        document.createTextNode(label)
+      ]);
+    })
   );
 }
 
 const dot = () => el("span", { class: "dot", attrs: { "aria-hidden": "true" } });
 
 // One expandable service card. handlers: { onEdit(id), onDelete(id) }.
-export function entryCard(entry, currency, handlers) {
+// `car` resolves job labels/icons so custom items render their real names.
+export function entryCard(entry, currency, handlers, car) {
   const detailId = "detail-" + String(entry.id);
-  const tagLabels = (entry.tags || []).map(jobLabel).join(" · ") || "Service";
+  const tagLabels = (entry.tags || []).map((t) => jobMeta(car, t).label).join(" · ") || "Service";
 
   const summary = el(
     "button",
@@ -185,7 +214,7 @@ export function entryCard(entry, currency, handlers) {
         dot(),
         el("span", { text: entry.workshop && entry.workshop.trim() ? entry.workshop.trim() : "—" })
       ]),
-      jobsRow(entry.tags)
+      jobsRow(entry.tags, car)
     ]
   );
 
@@ -215,7 +244,8 @@ export function entryCard(entry, currency, handlers) {
 }
 
 // Full timeline (sorted newest first) or a friendly empty state.
-export function timeline(entries, currency, handlers) {
+// `car` is threaded to entryCard so custom-job labels resolve on each card.
+export function timeline(entries, currency, handlers, car) {
   const wrap = el("div", { class: "timeline" });
   if (!entries || entries.length === 0) {
     wrap.appendChild(
@@ -227,7 +257,7 @@ export function timeline(entries, currency, handlers) {
     return wrap;
   }
   const list = entries.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  for (const e of list) wrap.appendChild(entryCard(e, currency, handlers));
+  for (const e of list) wrap.appendChild(entryCard(e, currency, handlers, car));
   return wrap;
 }
 

@@ -8,19 +8,43 @@ export const activeEntries = (car) => (car.entries || []).filter((e) => !e.delet
 export const getActiveCar = (state) =>
   state.cars.find((c) => c.id === state.activeCarId) || state.cars[0];
 
+// Per-car job registry: built-in JOBS (builtin:true) merged with the car's
+// customJobs (builtin:false). Tolerates a missing/undefined car or customJobs.
+export const allJobs = (car) => {
+  const out = {};
+  for (const [key, j] of Object.entries(JOBS)) {
+    out[key] = { label: j.label, icon: j.icon, builtin: true };
+  }
+  const custom = (car && car.customJobs) || {};
+  for (const [key, j] of Object.entries(custom)) {
+    out[key] = { label: j.label, icon: j.icon, builtin: false };
+  }
+  return out;
+};
+
+// Label + icon for one key: built-in first, then this car's customJobs, else a
+// safe fallback so a dropped/unknown key degrades gracefully instead of crashing.
+export const jobMeta = (car, key) => {
+  if (JOBS[key]) return { label: JOBS[key].label, icon: JOBS[key].icon };
+  const custom = (car && car.customJobs) || {};
+  if (custom[key]) return { label: custom[key].label, icon: custom[key].icon };
+  return { label: key, icon: "🔧" };
+};
+
 // Pure text/tag filter for the History list. No clock, no DOM.
 // Keeps an entry when: (no tag OR it carries `tag`) AND
 // (no query OR the query is a case-insensitive substring of its workshop,
 // notes, or any of its job labels resolved via JOBS).
-export const filterEntries = (entries, { query = "", tag = null } = {}) => {
+export const filterEntries = (entries, { query = "", tag = null } = {}, car) => {
   const q = String(query || "").trim().toLowerCase();
+  const labelFor = (t) => (car ? jobMeta(car, t).label : JOBS[t] ? JOBS[t].label : String(t));
   return (entries || []).filter((e) => {
     if (tag && !(Array.isArray(e.tags) && e.tags.includes(tag))) return false;
     if (!q) return true;
     const hay = [];
     if (e.workshop) hay.push(String(e.workshop));
     if (e.notes) hay.push(String(e.notes));
-    for (const t of e.tags || []) hay.push(JOBS[t] ? JOBS[t].label : String(t));
+    for (const t of e.tags || []) hay.push(labelFor(t));
     return hay.join("  ").toLowerCase().includes(q);
   });
 };

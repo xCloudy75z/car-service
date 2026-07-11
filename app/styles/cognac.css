@@ -423,6 +423,59 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 2px 7px; border-radius: 999px;
 }
 
+/* ---- Settings: Service intervals editor ---- */
+.intervals { margin-top: 2px; }
+.intv-group {
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); margin: 14px 2px 8px; /* section sub-label — muted for AA */
+}
+.intv-group:first-child { margin-top: 6px; }
+.intv-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+  padding: 13px 14px; margin-bottom: 10px; box-shadow: var(--shadow-sm);
+}
+.intv-head { display: flex; align-items: center; gap: 10px; }
+.intv-ico { font-size: 19px; }
+.intv-label { font-weight: 700; font-size: 14.5px; }
+
+/* Second line: km field (left, shown only when the job predicts) + toggle (right),
+   pushed apart so the tap targets never crowd. */
+.intv-ctl { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 11px; }
+.intv-km { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; }
+.intv-km[hidden] { display: none; }
+.intv-km-input {
+  width: 130px; max-width: 100%; padding: 10px 12px; min-height: 44px;
+  border: 1px solid var(--line); border-radius: 11px; background: var(--card);
+  color: var(--ink); font-size: 16px; font-family: var(--fm); font-variant-numeric: tabular-nums;
+}
+.intv-km-input:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+.intv-unit { font-size: 12px; font-weight: 700; color: var(--muted); }
+
+/* Real switch: 44px tall tap target, 30px visual track, sliding knob. */
+.switch {
+  position: relative; flex: 0 0 auto; width: 54px; height: 44px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  display: inline-flex; align-items: center;
+}
+.switch::before {
+  content: ""; display: block; width: 54px; height: 30px; border-radius: 999px;
+  background: var(--grey-soft); border: 1px solid var(--line);
+  transition: background .15s, border-color .15s;
+}
+.switch-knob {
+  position: absolute; top: 50%; left: 5px; transform: translateY(-50%);
+  width: 24px; height: 24px; border-radius: 50%; background: #fff;
+  box-shadow: var(--shadow-sm); transition: left .15s;
+}
+.switch[aria-checked="true"]::before { background: var(--accent); border-color: var(--accent); }
+.switch[aria-checked="true"] .switch-knob { left: 25px; }
+
+.intv-warn {
+  margin-top: 9px; font-size: 11.5px; color: var(--amber); background: var(--amber-soft);
+  padding: 8px 10px; border-radius: 9px;
+}
+.intv-warn[hidden] { display: none; }
+
 /* Gentle "not backed up yet" reminder on the History view. */
 .nudge {
   display: flex; align-items: center; gap: 10px; width: 100%;

@@ -1,7 +1,7 @@
 // Pure prediction + stats engine.
 // Never calls Date.now()/Math.random(); receives `todayISO` where "now" is needed.
 
-import { DEFAULT_INTERVALS, dueSoonKm } from "./schema.js";
+import { dueSoonKm } from "./schema.js";
 import { activeEntries } from "./select.js";
 
 const hasNumericOdo = (e) => typeof e.odometer === "number" && Number.isFinite(e.odometer);
@@ -37,8 +37,18 @@ export function lastDone(car, tag) {
   return null;
 }
 
-const intervalFor = (car, tag) =>
-  (car.intervals && car.intervals[tag]) || DEFAULT_INTERVALS[tag] || null;
+// The keys a car predicts for = exactly the keys present in `car.intervals`.
+// A job is predicted for a car iff its key is in `car.intervals`. Guards
+// undefined/null so callers never throw on a half-built car object.
+export function predictedKeys(car) {
+  return Object.keys((car && car.intervals) || {});
+}
+
+// The interval object for a key, or null. NO DEFAULT_INTERVALS fallback:
+// if the key isn't in this car's intervals, it isn't predicted.
+export function intervalFor(car, key) {
+  return (car && car.intervals && car.intervals[key]) || null;
+}
 
 // { status:'ok'|'soon'|'over'|'none', remaining, nextDue, pct, anchor, timeHintMonths }
 export function predict(car, tag) {

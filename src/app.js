@@ -3,8 +3,8 @@
 // Add/Edit and Settings dialogs.
 
 import { createStore } from "./store.js";
-import { getActiveCar, activeEntries } from "./select.js";
-import { JOBS } from "./schema.js";
+import { getActiveCar, activeEntries, allJobs } from "./select.js";
+import { JOBS, DEFAULT_INTERVALS } from "./schema.js";
 import { validateEntry, coerceNumber, safeJsonParse } from "./validate.js";
 import { currentKm } from "./calc.js";
 import { fmtKm } from "./format.js";
@@ -642,6 +642,204 @@ function renderDeleteCarConfirm(body, ctl, id) {
   cancelBtn.focus();
 }
 
+// ---- Service intervals editor (active car) ---------------------------------
+
+// One stacked card per job: icon + label on top; on a second line a km field
+// (revealed only when the job predicts) and a real role="switch" toggle. The
+// toggle is a live reflection of interval PRESENCE — a job is ON iff it has an
+// interval. Turning it ON only *arms* the card (reveals + focuses the km field);
+// nothing is persisted until a valid km commits, so we never write a NaN row or
+// desync the toggle from stored state.
+function intervalCard(car, key, meta, body, ctl) {
+  const hasInterval = !!(car.intervals && car.intervals[key]);
+  const kmVal = hasInterval ? car.intervals[key].km : null;
+  const defKm = DEFAULT_INTERVALS[key] ? DEFAULT_INTERVALS[key].km : null;
+
+  const kmInput = el("input", {
+    class: "intv-km-input mono",
+    attrs: {
+      type: "text", inputmode: "numeric", autocomplete: "off",
+      "aria-label": "Distance in km for " + meta.label,
+      value: kmVal != null ? String(kmVal) : "",
+      placeholder: defKm != null ? String(defKm) : "e.g. 30000"
+    }
+  });
+  const kmWrap = el("div", { class: "intv-km" }, [
+    kmInput,
+    el("span", { class: "intv-unit", attrs: { "aria-hidden": "true" }, text: "km" })
+  ]);
+  kmWrap.hidden = !hasInterval;
+
+  const toggle = el("button", {
+    class: "switch",
+    attrs: {
+      type: "button", role: "switch",
+      "aria-checked": hasInterval ? "true" : "false",
+      "aria-label": "Predict " + meta.label
+    }
+  }, [el("span", { class: "switch-knob", attrs: { "aria-hidden": "true" } })]);
+
+  const hint = el("div", { class: "intv-warn", attrs: { role: "status", hidden: true } });
+
+  // `armed` = toggle flipped ON but not yet persisted (awaiting a valid km).
+  let armed = false;
+  // `cancelGuard` = the km blur was caused by pressing THIS card's toggle to turn
+  // it off; skip the blur-commit so the click can revert cleanly (no accidental save).
+  let cancelGuard = false;
+
+  const setChecked = (on) => toggle.setAttribute("aria-checked", on ? "true" : "false");
+  const showHint = (msg) => { hint.textContent = msg; hint.hidden = false; };
+  const clearHint = () => { hint.hidden = true; };
+  const INVALID = "Enter a distance in km, like 10000.";
+
+  // After any persisted change: re-render the app (Next-due / Maintenance reflect
+  // it) AND rebuild the Settings body from fresh state so the editor is never
+  // stale. Scroll position is preserved so editing deep in the list doesn't jump.
+  function rerenderAll() {
+    render();
+    const sc = body.scrollTop;
+    renderSettingsBody(body, ctl);
+    body.scrollTop = sc;
+  }
+
+  toggle.addEventListener("mousedown", () => {
+    // Only guard when this press will turn an ON toggle off (the cancel case).
+    if (toggle.getAttribute("aria-checked") === "true") cancelGuard = true;
+  });
+
+  toggle.addEventListener("click", () => {
+    const isOn = toggle.getAttribute("aria-checked") === "true";
+    if (isOn) {
+      if (armed) {
+        // Was only armed (never persisted) → revert UI, nothing to remove.
+        armed = false;
+        setChecked(false);
+        kmWrap.hidden = true;
+        clearHint();
+      } else {
+        store.removeInterval(key);
+        if (store.lastError) { toast("Couldn't turn that off — please try again.", { type: "error" }); return; }
+        rerenderAll();
+      }
+    } else {
+      // Arm: reveal + prefill the built-in default (if any) + focus. Not persisted yet.
+      armed = true;
+      setChecked(true);
+      clearHint();
+      kmWrap.hidden = false;
+      if (kmInput.value.trim() === "" && defKm != null) kmInput.value = String(defKm);
+      kmInput.focus();
+      kmInput.select();
+    }
+    cancelGuard = false;
+  });
+
+  kmInput.addEventListener("input", () => {
+    const raw = kmInput.value.trim();
+    if (raw === "") { clearHint(); return; }
+    const v = coerceNumber(kmInput.value);
+    if (Number.isFinite(v) && v > 0) clearHint();
+    else showHint(INVALID);
+  });
+
+  kmInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); kmInput.blur(); }
+  });
+
+  kmInput.addEventListener("blur", () => {
+    if (cancelGuard) { cancelGuard = false; return; }
+    const v = coerceNumber(kmInput.value);
+    const valid = Number.isFinite(v) && v > 0;
+    if (armed) {
+      if (!valid) {
+        // Empty/invalid on an armed card → keep it OFF (no NaN row, no desync).
+        armed = false;
+        setChecked(false);
+        kmWrap.hidden = true;
+        clearHint();
+        return;
+      }
+      store.setInterval(key, Math.round(v));
+      if (store.lastError) { toast("Couldn't save that distance — please try again.", { type: "error" }); return; }
+      armed = false;
+      rerenderAll();
+    } else if (hasInterval) {
+      // Editing the km of an already-ON job.
+      if (!valid) { showHint(INVALID); return; } // don't write bad data
+      if (Math.round(v) === kmVal) { clearHint(); return; } // unchanged — skip write
+      store.setInterval(key, Math.round(v)); // MERGES → preserves a time caption (e.g. brake_fluid)
+      if (store.lastError) { toast("Couldn't save that distance — please try again.", { type: "error" }); return; }
+      rerenderAll();
+    }
+  });
+
+  const head = el("div", { class: "intv-head" }, [
+    el("span", { class: "intv-ico", attrs: { "aria-hidden": "true" }, text: meta.icon }),
+    el("span", { class: "intv-label", text: meta.label })
+  ]);
+  const ctlRow = el("div", { class: "intv-ctl" }, [kmWrap, toggle]);
+
+  return el("div", { class: "intv-card" }, [head, ctlRow, hint]);
+}
+
+// The whole Service intervals section: grouped stacked cards (Built-in / Custom —
+// only Built-in has entries in 6b, but the grouping is written so 6c custom items
+// slot straight in) plus a "Reset to defaults" button.
+function renderIntervalsSection(body, ctl) {
+  const car = getActiveCar(store.getState());
+  const jobs = allJobs(car);
+  const keys = Object.keys(jobs);
+  const wrap = el("div", { class: "intervals" });
+
+  function group(headingText, groupKeys) {
+    if (groupKeys.length === 0) return;
+    wrap.appendChild(el("div", { class: "intv-group", text: headingText }));
+    for (const key of groupKeys) wrap.appendChild(intervalCard(car, key, jobs[key], body, ctl));
+  }
+  group("Built-in", keys.filter((k) => jobs[k].builtin));
+  group("Custom", keys.filter((k) => !jobs[k].builtin));
+
+  const resetBtn = el("button", {
+    class: "btn btn-lite", attrs: { type: "button", style: "margin-top:12px" }, text: "Reset to defaults"
+  });
+  resetBtn.addEventListener("click", () => renderResetIntervalsConfirm(body, ctl));
+  wrap.appendChild(resetBtn);
+
+  return wrap;
+}
+
+// Inline confirm (rendered INTO the Settings body, like the delete-car confirm)
+// before resetting the active car's distances to the defaults.
+function renderResetIntervalsConfirm(body, ctl) {
+  body.replaceChildren();
+
+  const confirmBtn = el("button", { class: "btn btn-danger", attrs: { type: "button", style: "margin-top:16px" }, text: "Reset to defaults" });
+  confirmBtn.addEventListener("click", () => {
+    store.resetIntervals();
+    if (store.lastError) {
+      toast("Couldn't reset — please try again.", { type: "error" });
+      renderSettingsBody(body, ctl);
+      return;
+    }
+    render();
+    renderSettingsBody(body, ctl);
+    toast("Distances reset to defaults");
+  });
+
+  const cancelBtn = el("button", { class: "btn btn-lite", attrs: { type: "button", style: "margin-top:10px" }, text: "Keep my distances" });
+  cancelBtn.addEventListener("click", () => renderSettingsBody(body, ctl));
+
+  body.append(
+    el("h2", { class: "slab", text: "Reset intervals" }),
+    el("p", { attrs: { style: "margin:2px 2px 4px;font-weight:600" }, text: "Reset all distances to the defaults?" }),
+    el("p", { class: "tiny muted", attrs: { style: "margin:0 2px 4px" }, text: "Your custom items are kept but stop predicting until you re-add a distance." }),
+    confirmBtn,
+    cancelBtn
+  );
+
+  cancelBtn.focus();
+}
+
 // Rebuildable Settings body — always reads fresh state, so a rebuild after any
 // garage mutation (delete/undo) can never show or write a stale car.
 function renderSettingsBody(body, ctl) {
@@ -696,6 +894,8 @@ function renderSettingsBody(body, ctl) {
     el("h2", { class: "slab", attrs: { style: "margin-top:20px" }, text: "Your Garage" }),
     garage,
     addCarBtn,
+    el("h2", { class: "slab", attrs: { style: "margin-top:20px" }, text: "Service intervals" }),
+    renderIntervalsSection(body, ctl),
     el("h2", { class: "slab", attrs: { style: "margin-top:20px" }, text: "Preferences" }),
     profileRow("Currency", currency()),
     el("h2", { class: "slab", attrs: { style: "margin-top:20px" }, text: "App" }),

@@ -1,8 +1,13 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { currentKm, lastDone, predict, stats, costByJob } from "../src/calc.js";
+import { currentKm, lastDone, predict, stats, costByJob, predictedKeys, intervalFor } from "../src/calc.js";
+import { DEFAULT_INTERVALS } from "../src/schema.js";
 
-const car = (entries, baselines = {}) => ({ entries, baselines, intervals: null });
+const car = (entries, baselines = {}) => ({
+  entries,
+  baselines,
+  intervals: JSON.parse(JSON.stringify(DEFAULT_INTERVALS))
+});
 const E = (id, date, odometer, tags) => ({ id, date, odometer, tags, deletedAt: null });
 
 test("currentKm = max odometer, ignores deleted + null odo", () => {
@@ -160,4 +165,31 @@ test("costByJob ignores deleted entries and no-tag entries", () => {
 
 test("costByJob empty → []", () => {
   assert.deepEqual(costByJob(car([])), []);
+});
+
+// ---- predictedKeys + intervalFor (no DEFAULT_INTERVALS fallback) -----------
+
+test("predictedKeys returns the keys of car.intervals", () => {
+  assert.deepEqual(predictedKeys(car([])).sort(), Object.keys(DEFAULT_INTERVALS).sort());
+});
+
+test("predictedKeys of a car with empty intervals → []", () => {
+  assert.deepEqual(predictedKeys({ entries: [], intervals: {} }), []);
+});
+
+test("predictedKeys tolerates undefined intervals (no throw) → []", () => {
+  assert.deepEqual(predictedKeys({ entries: [] }), []);
+  assert.deepEqual(predictedKeys(undefined), []);
+});
+
+test("intervalFor returns the interval for a present key", () => {
+  assert.deepEqual(intervalFor(car([]), "oil"), { km: 10000 });
+});
+
+test("intervalFor returns null (no default fallback) for a key not in intervals", () => {
+  // `brakes` has no default interval and is not seeded → null, not a default.
+  assert.equal(intervalFor(car([]), "brakes"), null);
+  // A key removed from intervals also resolves to null.
+  assert.equal(intervalFor({ entries: [], intervals: {} }, "oil"), null);
+  assert.equal(intervalFor(undefined, "oil"), null);
 });

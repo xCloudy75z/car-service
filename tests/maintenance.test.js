@@ -1,9 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { maintenanceRows } from "../src/ui/maintenance.js";
+import { DEFAULT_INTERVALS } from "../src/schema.js";
 
 const E = (id, date, odometer, tags) => ({ id, date, odometer, tags, deletedAt: null });
-const car = (entries, baselines = {}) => ({ entries, baselines, intervals: null });
+const car = (entries, baselines = {}) => ({
+  entries,
+  baselines,
+  intervals: JSON.parse(JSON.stringify(DEFAULT_INTERVALS))
+});
 
 // current km = 60000 (from the "tires" entry, which is not a predicted job).
 //   oil:          last 45000 → next 55000, rem -5000        → over
@@ -46,4 +51,33 @@ test("a baseline anchor with no entries yields p.anchor === true", () => {
   const bf = maintenanceRows(c).find((r) => r.tag === "brake_fluid");
   assert.equal(bf.p.anchor, true);
   assert.equal(bf.p.status !== "none", true); // anchor drives a real prediction
+});
+
+test("a car with empty intervals yields no maintenance rows", () => {
+  const c = { entries: [], baselines: {}, intervals: {}, customJobs: {} };
+  assert.deepEqual(maintenanceRows(c), []);
+});
+
+test("stable tiebreak: same status → built-ins in JOBS order, then customs by label", () => {
+  // All four keys have no history/anchor → status 'none'. Intervals are inserted
+  // in a scrambled order so a naive stable sort would preserve it; the canonical
+  // sort must reorder to (built-ins in JOBS order) then (customs by label).
+  const c = {
+    entries: [],
+    baselines: {},
+    intervals: {
+      air_filter: { km: 20000 },
+      oil: { km: 10000 },
+      cj_z: { km: 5000 },
+      cj_a: { km: 5000 }
+    },
+    customJobs: {
+      cj_z: { label: "Zebra", icon: "🦓" },
+      cj_a: { label: "Alpha", icon: "🅰️" }
+    }
+  };
+  assert.deepEqual(
+    maintenanceRows(c).map((r) => r.tag),
+    ["oil", "air_filter", "cj_a", "cj_z"]
+  );
 });
